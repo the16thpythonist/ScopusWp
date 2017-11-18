@@ -2,7 +2,47 @@ import textwrap
 import scopus_models
 
 
-class PublicationPrettyView:
+class PublicationBriefView:
+
+    def __init__(self, publication, line_limit=100):
+        self.publication = publication
+        self.line_limit = line_limit
+
+    def get_string(self):
+
+        string_lines_list = []
+
+        string_lines_list.append(self._format_title_string())
+        string_lines_list.append(self._format_published_string())
+
+        string_lines_list.append('')
+
+        string_lines_list.append(self._format_description_string())
+
+        string_lines_list.append('')
+
+        return '\n'.join(string_lines_list)
+
+    def _format_title_string(self):
+        title_string = self.publication.title
+        title_string_line_list = textwrap.wrap(title_string, self.line_limit)
+
+        return '\n'.join(title_string_line_list)
+
+    def _format_published_string(self):
+        published_string = 'Published in {} ({})'.format(self.publication.journal, self.publication.date)
+        published_string_line_list = textwrap.wrap(published_string, self.line_limit)
+
+        return '\n'.join(published_string_line_list)
+
+    def _format_description_string(self):
+        description_string = self.publication.description
+        description_string_line_list = textwrap.wrap(description_string)
+
+        return '\n'.join(description_string_line_list)
+
+
+class PublicationPrettyView(PublicationBriefView):
 
     def __init__(self, publication, line_limit=100, bullet_point='*'):
         self.publication = publication
@@ -32,18 +72,6 @@ class PublicationPrettyView:
 
         return '\n'.join(string_lines_list)
 
-    def _format_title_string(self):
-        title_string = self.publication.title
-        title_string_line_list = textwrap.wrap(title_string, self.line_limit)
-
-        return '\n'.join(title_string_line_list)
-
-    def _format_published_string(self):
-        published_string = 'Published in {} ({})'.format(self.publication.journal, self.publication.date)
-        published_string_line_list = textwrap.wrap(published_string, self.line_limit)
-
-        return '\n'.join(published_string_line_list)
-
     def _format_authors_string(self):
         authors_string_list = []
         for author in self.publication.authors:
@@ -53,12 +81,6 @@ class PublicationPrettyView:
         authors_string_line_list = textwrap.wrap(authors_string)
 
         return '\n'.join(authors_string_line_list)
-
-    def _format_description_string(self):
-        description_string = self.publication.description
-        description_string_line_list = textwrap.wrap(description_string)
-
-        return '\n'.join(description_string_line_list)
 
     def _format_citations_string(self):
         citations_string_line_list = ['Cited by:']
