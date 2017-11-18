@@ -7,13 +7,14 @@ def format_bullet_point(string_list, bullet_point, line_limit):
 
     # Creating the bullet point string and the whitespaces to be added to all the additional lines, to accommodate to
     # the indent level of the bullet point
-    bullet_point_string = ''.join(['', bullet_point])
+    bullet_point_string = ''.join([bullet_point, ' '])
     whitespaces = ' ' * len(bullet_point_string)
 
     for string in string_list:
 
         # Formatting each line according to the line limit
-        lines = textwrap.wrap(string, line_limit - len(bullet_point_string))
+        width = line_limit - len(bullet_point_string)
+        lines = textwrap.wrap(string, width)
         # Adding the bullet point string to the front of the first wrapper line
         lines[0] = bullet_point_string + lines[0]
         # Adding the whitespace indent to all other lines
@@ -39,14 +40,13 @@ class PublicationBriefView:
         published_string = self._format_published_string()
         description_string = self._format_published_string()
 
-        string = """
-        {title}
-        {published}
-
-        {description}
-        """.format(title=title_string,
-                   published=published_string,
-                   description=description_string)
+        string = (
+            '{title}\n'
+            '{published}\n\n'
+            '{description}'
+        ).format(title=title_string,
+                 published=published_string,
+                 description=description_string)
 
         return string
 
@@ -64,7 +64,7 @@ class PublicationBriefView:
 
     def _format_description_string(self):
         description_string = self.publication.description
-        description_string_line_list = textwrap.wrap(description_string)
+        description_string_line_list = textwrap.wrap(description_string, self.line_limit)
 
         return '\n'.join(description_string_line_list)
 
@@ -72,32 +72,29 @@ class PublicationBriefView:
 class PublicationPrettyView(PublicationBriefView):
 
     def __init__(self, publication, line_limit=100, bullet_point='*'):
-        self.publication = publication
-        self.line_limit = line_limit
+        PublicationBriefView.__init__(self, publication, line_limit=line_limit)
         self.bullet_point_style = bullet_point
 
     def get_string(self):
 
         title_string = self._format_title_string()
         published_string = self._format_published_string()
-        description_string = self._format_published_string()
+        description_string = self._format_description_string()
         authors_string = self._format_authors_string()
         citations_string = self._format_citations_string()
 
-        string = """
-                {title}
-
-                {published}
-                {authors}
-
-                {description}
-
-                {citations}
-                """.format(title=title_string,
-                           published=published_string,
-                           authors=authors_string,
-                           description=description_string,
-                           citations=citations_string)
+        string = (
+            '{title}\n\n'
+            '{published}\n'
+            '{authors}\n\n'
+            '{description}\n\n'
+            'cited by:\n'
+            '{citations}'
+        ).format(title=title_string,
+                 published=published_string,
+                 authors=authors_string,
+                 description=description_string,
+                 citations=citations_string)
 
         return string
 
@@ -107,13 +104,11 @@ class PublicationPrettyView(PublicationBriefView):
             name = '{} {}'.format(author.first_name, author.last_name)
             authors_string_list.append(name)
         authors_string = 'Written by: ' + ', '.join(authors_string_list)
-        authors_string_line_list = textwrap.wrap(authors_string)
+        authors_string_line_list = textwrap.wrap(authors_string, self.line_limit)
 
         return '\n'.join(authors_string_line_list)
 
     def _format_citations_string(self):
-
-        citations_string_line_list = ['Cited by:']
 
         # Getting a list with Publication objects from the scopus id's given
         citation_publication_list = scopus_models.get_publication_list(self.publication.citations)
@@ -129,10 +124,7 @@ class PublicationPrettyView(PublicationBriefView):
                                                            self.bullet_point_style,
                                                            self.line_limit)
 
-        citations_string_line_list.append(citation_bullet_point_string)
-        citation_string = ''.join(citations_string_line_list)
-
-        return citation_string
+        return citation_bullet_point_string
 
 
 class AuthorBriefView:
