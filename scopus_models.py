@@ -19,7 +19,6 @@ HEADERS = {
 }
 
 
-
 def get_publication_list(scopus_id_list):
     publications = []
     for scopus_id in scopus_id_list:
@@ -161,7 +160,6 @@ class Author:
 
         publication_list = []
         start = 0
-        total_count = None
 
         while True:
 
@@ -244,7 +242,6 @@ class Publication:
 
     @staticmethod
     def from_scopus_id(scopus_id):
-        logger = logging.getLogger(SCOPUS_LOGGING_EXTENSION)
 
         query = {
             "field": 'description,title,authors,authkeywords,publicationName,volume,issueIdentifier,coverDate,'
