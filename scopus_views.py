@@ -129,5 +129,40 @@ class PublicationPrettyView(PublicationBriefView):
 
 class AuthorBriefView:
 
-    def __init__(self, author):
-        pass
+    def __init__(self, author, line_limit=100, bullet_point='*'):
+        self.author = author
+        self.line_limit = line_limit
+        self.bullet_point_style = bullet_point
+
+    def get_string(self):
+
+        publications_string = self._format_publications_string()
+
+        string = (
+            '{last_name}, {last_name}\n\n'
+            'Publications:\n\n'
+            '{publications}'
+        ).format(first_name=self.author.first_name.upper(),
+                 last_name=self.author.last_name.upper(),
+                 publications=publications_string)
+
+        return string
+
+    def _format_publications_string(self):
+
+        # Getting the list of all the publications of the author
+        publication_list = self.author.request_publication_list()
+
+        publication_string_list = []
+        for publication in publication_list:
+            # Creating a PublicationBriefView object for each publication to format it into a string
+            publication_brief_view = PublicationBriefView(publication, self.line_limit)
+            publication_string = publication_brief_view.get_string()
+            publication_string_list.append(publication_string)
+
+        # Formatting the publications into a bullet point list
+        publication_bullet_point_string = format_bullet_point(publication_string_list,
+                                                              self.bullet_point_style,
+                                                              self.line_limit)
+
+        return publication_bullet_point_string
