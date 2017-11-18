@@ -2,6 +2,31 @@ import textwrap
 import scopus_models
 
 
+def format_bullet_point(string_list, bullet_point, line_limit):
+    string_line_list = []
+
+    # Creating the bullet point string and the whitespaces to be added to all the additional lines, to accommodate to
+    # the indent level of the bullet point
+    bullet_point_string = ''.join(['', bullet_point])
+    whitespaces = ' ' * len(bullet_point_string)
+
+    for string in string_list:
+
+        # Formatting each line according to the line limit
+        lines = textwrap.wrap(string, line_limit - len(bullet_point_string))
+        # Adding the bullet point string to the front of the first wrapper line
+        lines[0] = bullet_point_string + lines[0]
+        # Adding the whitespace indent to all other lines
+        for index in range(1, len(lines)):
+            lines[index] = whitespaces + lines[index]
+        lines.append('')
+
+        # Adding the temp lines to the list of total lines
+        string_line_list += lines
+
+    return '\n'.join(string_line_list)
+
+
 class PublicationBriefView:
 
     def __init__(self, publication, line_limit=100):
@@ -108,3 +133,9 @@ class PublicationPrettyView(PublicationBriefView):
             citations_string_line_list += lines
 
         return '\n'.join(citations_string_line_list)
+
+
+class AuthorBriefView:
+
+    def __init__(self, author):
+        pass
