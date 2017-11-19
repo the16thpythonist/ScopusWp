@@ -21,6 +21,18 @@ HEADERS = {
 
 # TODO: Write a function for automatic dict key checking and log writing
 
+
+def check_response_dictionary_key(dictionary, key, default_value, debug_message, logger_id=SCOPUS_LOGGING_EXTENSION):
+    if key in dictionary:
+        return dictionary[key]
+    else:
+        # If key not in the dict, creating a logger with the given logger id and with the given debug message
+        logger = logging.getLogger(logger_id)
+        logger.debug(debug_message)
+        # Returning the default value
+        return default_value
+
+
 def get_publication_list(scopus_id_list):
     publications = []
     for scopus_id in scopus_id_list:
