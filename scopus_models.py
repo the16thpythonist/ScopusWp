@@ -19,6 +19,8 @@ HEADERS = {
 }
 
 
+# TODO: Write a function for automatic dict key checking and log writing
+
 def get_publication_list(scopus_id_list):
     publications = []
     for scopus_id in scopus_id_list:
@@ -242,6 +244,7 @@ class Publication:
 
     @staticmethod
     def from_scopus_id(scopus_id):
+        logger = logging.getLogger(SCOPUS_LOGGING_EXTENSION)
 
         query = {
             "field": 'description,title,authors,authkeywords,publicationName,volume,issueIdentifier,coverDate,'
@@ -251,12 +254,20 @@ class Publication:
 
         response_dict = json.loads(response.text)
 
+        if 'authkeywords' in response_dict['abstracts-retrieval-response']:
+            # In case there is a field specifying the keywords to the publication, the keyword list will be built from
+            # that dictionary
+            keyword_entry_dict_list = response_dict['abstracts-retrieval-response']['authkeywords']['author-keyword']
+            keyword_list = Publication._extract_keyword_list(keyword_entry_dict_list)
+        else:
+            logger.warning('The publication with the SCOPUS ID:{} does not have keywords'.format(scopus_id))
+            # If there are no keywords an empty keyword list will be passed to create the Publication object
+            keyword_list = []
+
         author_entry_dict_list = response_dict['abstracts-retrieval-response']['authors']['author']
-        keyword_entry_dict_list = response_dict['abstracts-retrieval-response']['authkeywords']['author-keyword']
         coredata_dict = response_dict['abstracts-retrieval-response']['coredata']
 
         author_list = Publication._extract_author_list(author_entry_dict_list)
-        keyword_list = Publication._extract_keyword_list(keyword_entry_dict_list)
         title = Publication._extract_title(coredata_dict)
         description = Publication._extract_description(coredata_dict)
         eid = Publication._extract_eid(coredata_dict)
