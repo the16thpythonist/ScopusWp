@@ -1,7 +1,13 @@
 import ScopusWp.config as cfg
 
+from wordpress_xmlrpc import Client
+from wordpress_xmlrpc import WordPressPost
+from wordpress_xmlrpc.methods.posts import NewPost, EditPost
+
 from ScopusWp.repr import Publication
 from ScopusWp.repr import Author
+
+from ScopusWp.views import PublicationWordpressPostView
 
 import logging
 import urllib.parse as urlparse
@@ -10,6 +16,8 @@ import requests
 import json
 
 from pprint import pprint
+
+# TODO: generic dict unpacking
 
 
 class ScopusController:
@@ -25,6 +33,7 @@ class ScopusController:
         'volume': 'prism:volume',
         'date': 'prism:coverDate',
         'id': 'dc:identifier',
+        'doi': 'prism:doi'
     }
 
     COREDATA_DEFAULT_DICT = {
@@ -37,7 +46,8 @@ class ScopusController:
         'document-count': 0,
         'prism:publicationName': '',
         'prism:volume': 0,
-        'prism:coverDate': ''
+        'prism:coverDate': '',
+        'prism_doi': ''
     }
 
     def __init__(self):
@@ -82,7 +92,7 @@ class ScopusController:
         # The query which will be added to the url and transmit the serach parameters
         query = {
             'field': ('description,title,authors,authkeywords,publicationName,volume, coverDate,'
-                      'eid,citedby-count')
+                      'eid,citedby-count,doi')
         }
 
         # Preparing the url to which to send the GET request
@@ -149,6 +159,7 @@ class ScopusController:
             publication = Publication(
                 scopus_id_string,
                 eid,
+                data_dict['doi'],
                 author_id_list,
                 citation_scopus_id_list,
                 keywords_list,
@@ -212,7 +223,8 @@ class ScopusController:
 
             author = Author(
                 int(author_id_string),
-                first_name, last_name,
+                first_name,
+                last_name,
                 h_index,
                 publication_scopus_id_list,
                 citation_count,
@@ -256,6 +268,10 @@ class ScopusController:
     def _extract_citation_search_response_dict(self, response_dict):
         scopus_id_list = []
         citation_entry_dict_list = response_dict['entry']
+
+        if 'error' in citation_entry_dict_list[0].keys():
+            return []
+
         for citation_entry_dict in citation_entry_dict_list:
             scopus_id = citation_entry_dict['dc:identifier'].replace('SCOPUS_ID:', '')
             scopus_id_list.append(scopus_id)
@@ -389,6 +405,7 @@ class ScopusController:
         journal = self._get_coredata_item(coredata_dict, 'journal')
         volume = self._get_coredata_item(coredata_dict, 'volume')
         date = self._get_coredata_item(coredata_dict, 'date')
+        doi = self._get_coredata_item(coredata_dict, 'doi')
 
         return_dict = {
             'title': title,
@@ -398,6 +415,7 @@ class ScopusController:
             'journal': journal,
             'volume': volume,
             'date': date,
+            'doi': doi
         }
 
         return return_dict
@@ -445,3 +463,50 @@ class ScopusController:
                 error_message = 'The key "{}" is not a valid descriptor for a coredata key'.format(key)
                 self.logger.error(error_message)
                 raise KeyError(error_message)
+
+
+
+class WordpressController:
+
+    def __init__(self):
+        # Getting the config instance for the project
+        self.config = cfg.Config.get_instance()
+
+        # Getting the logger for the the scopus part of the project
+        scopus_logger_id = cfg.SCOPUS_LOGGING_EXTENSION
+        self.logger = logging.getLogger(scopus_logger_id)
+
+        # Getting the url path to the xmlrpc.php file from the config file
+        self.url = self.config['WORDPRESS']['url']
+        # Getting the username and the password for the access to the wordpress api from the config file
+        self.username = self.config['WORDPRESS']['username']
+        self.password = self.config['WORDPRESS']['password']
+
+        # Creating the client object from the login data
+        self.client = Client(self.url, self.username, self.password)
+
+    def post_publication(self, publication, author_list):
+        # Creating the view specifically for the wordpress posts
+        wp_post_view = PublicationWordpressPostView(publication, author_list)
+
+        post = WordPressPost()
+
+        post.title = wp_post_view.get_title()
+        post.excerpt = wp_post_view.get_excerpt()
+        post.date = wp_post_view.get_date()
+        post.slug = wp_post_view.get_slug()
+        post.content = wp_post_view.get_content()
+
+        post.id = self.client.call(NewPost(post))
+
+        post.terms_names = {
+            'category': wp_post_view.get_category_list(),
+            'post_tag': wp_post_view.get_tag_list()
+        }
+
+        post.post_status = 'publish'
+        post.comment_status = 'closed'
+
+        self.client.call(EditPost(post.id, post))
+
+        return post.id
