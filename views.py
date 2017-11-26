@@ -1,6 +1,45 @@
 import datetime
 
 
+class PublicationWordpressCitationView:
+
+    def __init__(self, publication):
+        self.publication = publication
+
+    def get_content(self):
+
+        author_string = self.publication.creator.index_name
+        title_string = self.publication.title
+
+        journal_string = self.publication.journal
+        volume_string = self.publication.volume
+        doi_string = self.publication.doi
+
+        date_tuple = self.get_date()
+        year_string = str(date_tuple.tm_year)
+
+        content_string = (
+            u'{author} et al.: '
+            u'<a href="http://dx.doi.org/{doi}"><b>{title}</b></a>'
+            u' in {journal}, {volume} ({year}).'
+        ).format(
+            author=author_string,
+            doi=doi_string,
+            title=title_string,
+            journal=journal_string,
+            volume=volume_string,
+            year=year_string
+        )
+
+        return content_string
+
+    def get_date(self):
+        date_string = self.publication.date
+        date_tuple = datetime.datetime.strptime(date_string, '%Y-%m-%d').timetuple()
+        return date_tuple
+
+
+
 class PublicationWordpressPostView:
 
     def __init__(self, publication, author_list):
@@ -14,7 +53,7 @@ class PublicationWordpressPostView:
         return title_encoded
 
     def get_date(self):
-        date_string = self.publication.date.encode('utf-8')
+        date_string = self.publication.date
         date_tuple = datetime.datetime.strptime(date_string, '%Y-%m-%d').timetuple()
         return date_tuple
 
@@ -41,15 +80,18 @@ class PublicationWordpressPostView:
         return excerpt_string
 
     def get_content(self):
-        author_string = self._get_authors_string(20).encode('utf-8')
-        journal_string = self.publication.journal.encode('utf-8')
-        volume_string = self.publication.volume.encode('utf-8')
-        description_string = self.publication.description.encode('utf-8')
-        doi_string = self.publication.doi.encode('utf-8')
+        author_string = self._get_authors_string(20)
+        journal_string = self.publication.journal
+        volume_string = self.publication.volume
+        description_string = self.publication.description
+        doi_string = self.publication.doi
+
+        date_tuple = self.get_date()
+        year_string = str(date_tuple.tm_year)
 
         content_string = (
             u'<p>{authors}</p>'
-            u'<p> in <em>{journal}</em>, {volume}.</p>'
+            u'<p> in <em>{journal}</em>, {volume} ({year}). DOI: {doi}</p>'
             u'<div class="accordion-inner"><h4>Abstract</h4>{description}</div>\n'
             u'<div class="accordion-inner"><a href="http://dx.doi.org/{doi}" class="btn btn-primary">'
             u'<i class="icon-download icon-white"></i> Get it</a></div>'
@@ -58,7 +100,8 @@ class PublicationWordpressPostView:
             journal=journal_string,
             volume=volume_string,
             description=description_string,
-            doi=doi_string
+            doi=doi_string,
+            year=year_string
         )
 
         return content_string
@@ -78,7 +121,7 @@ class PublicationWordpressPostView:
         if author_count < max_amount:
             # Adding all the author names to one long string
             for index in range(1, author_count):
-                author_string = ', {}'.format(self.authors[index])
+                author_string = ', {}'.format(self.authors[index].index_name)
                 authors_string_list.append(author_string)
 
         else:

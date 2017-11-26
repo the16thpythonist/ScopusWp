@@ -1,13 +1,16 @@
 import ScopusWp.config as cfg
 
 from wordpress_xmlrpc import Client
-from wordpress_xmlrpc import WordPressPost
-from wordpress_xmlrpc.methods.posts import NewPost, EditPost
+from wordpress_xmlrpc import WordPressPost, WordPressComment
+from wordpress_xmlrpc.methods.posts import NewPost, EditPost, GetPost
+from wordpress_xmlrpc.methods.comments import NewComment, EditComment
 
 from ScopusWp.repr import Publication
 from ScopusWp.repr import Author
 
-from ScopusWp.views import PublicationWordpressPostView
+from ScopusWp.views import PublicationWordpressPostView, PublicationWordpressCitationView
+
+from xml.etree.ElementTree import Element, SubElement
 
 import logging
 import urllib.parse as urlparse
@@ -33,13 +36,15 @@ class ScopusController:
         'volume': 'prism:volume',
         'date': 'prism:coverDate',
         'id': 'dc:identifier',
-        'doi': 'prism:doi'
+        'doi': 'prism:doi',
+        'creator': 'dc:creator'
     }
 
     COREDATA_DEFAULT_DICT = {
         'dc:title': '',
         'dc:description': '',
         'dc:identifier': 0,
+        'dc:creator': {'author': [{'@auid': ''}]},
         'eid': 0,
         'citedby-count': 0,
         'cited-by-count': 0,
@@ -91,8 +96,8 @@ class ScopusController:
     def request_abstract_retrieval(self, scopus_id):
         # The query which will be added to the url and transmit the serach parameters
         query = {
-            'field': ('description,title,authors,authkeywords,publicationName,volume, coverDate,'
-                      'eid,citedby-count,doi')
+            'field': ('description,title,authors,authkeywords,publicationName,volume,coverDate,'
+                      'eid,citedby-count,doi,creator')
         }
 
         # Preparing the url to which to send the GET request
@@ -156,6 +161,9 @@ class ScopusController:
 
             citation_scopus_id_list = self._extract_citation_search_response_dict(response_dict)
 
+            creator_author_id = data_dict['creator']
+            creator_author = self.get_author(creator_author_id)
+
             publication = Publication(
                 scopus_id_string,
                 eid,
@@ -163,12 +171,13 @@ class ScopusController:
                 author_id_list,
                 citation_scopus_id_list,
                 keywords_list,
+                creator_author,
                 data_dict['title'],
                 data_dict['description'],
                 data_dict['citation_count'],
                 data_dict['journal'],
                 data_dict['volume'],
-                data_dict['date']
+                data_dict['date'],
             )
 
             return publication
@@ -390,10 +399,14 @@ class ScopusController:
         author_entry_dict_list = authors_dict['author']
 
         for author_entry_dict in author_entry_dict_list:
-            author_id = author_entry_dict['@auid']
+            author_id = self._get_author_id(author_entry_dict)
             author_id_list.append(author_id)
 
         return author_id_list
+
+    def _get_author_id(self, author_dict):
+        author_id = author_dict['@auid']
+        return author_id
 
     def _extract_abstract_retrieval_coredata_dict(self, coredata_dict):
 
@@ -407,6 +420,10 @@ class ScopusController:
         date = self._get_coredata_item(coredata_dict, 'date')
         doi = self._get_coredata_item(coredata_dict, 'doi')
 
+        # Getting the creator author id from the coredata dict
+        author_dict = self._get_coredata_item(coredata_dict, 'creator')['author'][0]
+        creator_id = self._get_author_id(author_dict)
+
         return_dict = {
             'title': title,
             'description': description,
@@ -415,7 +432,8 @@ class ScopusController:
             'journal': journal,
             'volume': volume,
             'date': date,
-            'doi': doi
+            'doi': doi,
+            'creator': creator_id
         }
 
         return return_dict
@@ -465,7 +483,6 @@ class ScopusController:
                 raise KeyError(error_message)
 
 
-
 class WordpressController:
 
     def __init__(self):
@@ -493,9 +510,10 @@ class WordpressController:
 
         post.title = wp_post_view.get_title()
         post.excerpt = wp_post_view.get_excerpt()
-        post.date = wp_post_view.get_date()
+        # post.date = wp_post_view.get_date()
         post.slug = wp_post_view.get_slug()
         post.content = wp_post_view.get_content()
+        post.date = wp_post_view.get_date()
 
         post.id = self.client.call(NewPost(post))
 
@@ -510,3 +528,58 @@ class WordpressController:
         self.client.call(EditPost(post.id, post))
 
         return post.id
+
+    def post_citation(self, wordpress_id, publications, multiple=False):
+
+        if isinstance(publications, list):
+            self.enable_comments(wordpress_id)
+            # In case there are no multiple post, if the one passed
+            comment_id_list = []
+            for publication in publications:
+                comment_id = self.post_citation(wordpress_id, publication, multiple=True)
+                comment_id_list.append(comment_id)
+
+            self.disable_comments(wordpress_id)
+
+        elif isinstance(publications, Publication):
+            # In case there are no multiple citations to be added, if its only the one passed post, then adding
+            # mod. the comment status of the post locally
+            if not multiple:
+                self.enable_comments(wordpress_id)
+
+            # Actually posting the comment
+            comment = WordPressComment()
+
+            wp_comment_view = PublicationWordpressCitationView(publications)
+
+            comment.content = wp_comment_view.get_content()
+
+            comment_id = self.client.call(NewComment(wordpress_id, comment))
+
+            # Changing the date of the comment
+            comment.date_created = wp_comment_view.get_date()
+            self.client.call(EditComment(comment_id, comment))
+
+            if not multiple:
+                self.disable_comments(wordpress_id)
+
+            return comment_id
+
+    def enable_comments(self, wordpress_id):
+        # Getting the Post
+        post = self.client.call(GetPost(wordpress_id))
+
+        # Changing the comment status of the post to open
+        post.comment_status = 'open'
+
+        self.client.call(EditPost(wordpress_id, post))
+
+    def disable_comments(self, wordpress_id):
+        # Getting the post
+        post = self.client.call(GetPost(wordpress_id))
+
+        # Changing the comment status
+        post.comment_status = 'closed'
+
+        self.client.call(EditPost(wordpress_id, post))
+

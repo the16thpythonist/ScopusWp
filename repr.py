@@ -1,7 +1,7 @@
 
 class Publication:
 
-    def __init__(self, scopus_id, eid, doi, author_list, citation_list, keyword_list, title, description,
+    def __init__(self, scopus_id, eid, doi, author_list, citation_list, keyword_list, creator, title, description,
                  citation_count, journal, volume, date):
 
         self.id = scopus_id
@@ -16,6 +16,7 @@ class Publication:
         self.volume = volume
         self.date = date
         self.doi = doi
+        self.creator = creator
 
 
 class Author:
