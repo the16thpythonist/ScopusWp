@@ -88,4 +88,19 @@ def test_affiliation(affid):
     d = json.loads(response.text)
     pprint(d)
 
-relevant_test()
+
+def test_table():
+    from ScopusWp.views import PublicationObservedView
+
+    controller = ScopusWpController()
+    publications1, publications2 = controller.get_relevant_publications()
+    publications = publications1 + publications2
+
+    controller.build_publications(publications)
+    view = PublicationObservedView(publications, controller.observed_author_model)
+    string = view.get_table_string()
+    print('\n THE LIST OF ALL THE AFFILIATION IDS ANY ONE OF THE AUTHORS HAD IN THE PAST')
+    print(string)
+    pprint(view.affiliations)
+
+test_table()

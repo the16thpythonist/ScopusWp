@@ -1,7 +1,121 @@
 import datetime
 import textwrap
-import tabular
+import tabulate
 
+
+class PublicationObservedView:
+
+    def __init__(self, publication_list, observed_authors_model, max_length=40):
+        # TODO: rework the contains method
+        self.publications = publication_list
+        self.observed_authors_model = observed_authors_model
+        self.max_length = max_length
+
+        # The list, which will contain all the affiliation ids, that have occurred for the observed authors in the
+        # given list of publications
+        self.affiliations = []
+
+    def get_table_string(self):
+        table_list = [['SCOPUS ID', 'TITLE', 'AUTHOR IDS', 'AFFILIATION IDS']]
+
+        for publication in self.publications:
+            publication_row_list = self._get_row_list(publication)
+            table_list.append(publication_row_list)
+
+        table_string = tabulate.tabulate(table_list, tablefmt='fancy_grid')
+
+        return table_string
+
+    def _all_affiliations_observed_authors(self):
+        for publication in self.publications:
+            for author in publication.authors:
+                pass
+
+    def _get_row_list(self, publication):
+        # The publication id
+        scopus_id_string = str(publication.id)
+
+        # The first 20~ characters of the title for easier identification
+        if len(publication.title) < self.max_length:
+            title_string = publication.title
+        else:
+            title_string = '{}...'.format(publication.title[:self.max_length])
+
+        # Getting only those author ids, which are among the observed authors
+        author_list = []
+        author_id_list = []
+        for author in publication.authors:
+            if self.observed_authors_model.contains(author):
+                author_list.append(author)
+                author_id_list.append(author.id)
+        authors_string = ', '.join(author_id_list)
+        authors_string = textwrap.fill(authors_string, self.max_length)
+
+        # Getting only the affiliation ids of the observed authors
+        affiliation_id_list = []
+        for author in author_list:
+            affiliation_id_list += list(set(author.affiliations) - set(affiliation_id_list))
+            self.affiliations += list(set(affiliation_id_list) - set(self.affiliations))
+        affiliations_string = ', '.join(affiliation_id_list)
+        affiliations_string = textwrap.fill(affiliations_string, self.max_length)
+
+        row_list = [
+            scopus_id_string,
+            title_string,
+            authors_string,
+            affiliations_string
+        ]
+
+        return row_list
+
+
+class PublicationTableView:
+    def __init__(self, publication_list, max_length=40):
+        self.publications = publication_list
+        self.max_length = max_length
+
+    def get_string(self):
+        table_list = [['SCOPUS ID', 'TITLE', 'DOI', 'EID', 'AUTHOR IDS', 'AFFILIATION IDS']]
+        for publication in self.publications:
+            publication_row_list = self._get_row_list(publication)
+            table_list.append(publication_row_list)
+
+        table_string = tabulate.tabulate(table_list, tablefmt='fancy_grid')
+        return table_string
+
+    def _get_row_list(self, publication):
+        # The publication id
+        scopus_id_string = str(publication.id)
+
+        # The first 20~ characters of the title for easier identification
+        if len(publication.title) < self.max_length:
+            title_string = publication.title
+        else:
+            title_string = '{}...'.format(publication.title[:self.max_length])
+
+        # The doi and the eid of the paper
+        doi_string = publication.doi
+        eid_string = publication.eid
+
+        # All the authors of the publication
+        author_id_list = map(lambda x: x.id, publication.authors)
+        authors_string = ', '.join(author_id_list)
+        authors_string = textwrap.fill(authors_string, self.max_length)
+
+        # The affiliations of the publications
+        affiliations_string = ', '.join(publication.affiliations)
+        affiliations_string = textwrap.fill(affiliations_string, self.max_length)
+
+        row_list = [
+            scopus_id_string,
+            title_string,
+            eid_string,
+            doi_string,
+            authors_string,
+            affiliations_string
+        ]
+
+        return row_list
 
 class PublicationWordpressCitationView:
 
