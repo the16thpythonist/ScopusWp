@@ -2,76 +2,121 @@ import datetime
 import textwrap
 import tabulate
 
+from ScopusWp.repr import Author, AuthorProfile
+from ScopusWp.repr import Publication
 
-class PublicationObservedView:
 
-    def __init__(self, publication_list, observed_authors_model, max_length=40):
-        # TODO: rework the contains method
+class AuthorsAffiliationsView:
+
+    def __init__(self, author_list, publication_list, max_width=60):
+        self.max_width = max_width
+
         self.publications = publication_list
-        self.observed_authors_model = observed_authors_model
-        self.max_length = max_length
+        self.authors = author_list
 
-        # The list, which will contain all the affiliation ids, that have occurred for the observed authors in the
-        # given list of publications
-        self.affiliations = []
+        self.author_ids = []
+        # The dict, that is supposed to contain the author ids as the key and a list of all the occurring
+        # affiliation ids as the value
+        self.affiliation_dict = {}
+        for author in self.authors:
+            self.author_ids.append(author.id)
+            self.affiliation_dict[author.id] = []
 
-    def get_table_string(self):
-        table_list = [['SCOPUS ID', 'TITLE', 'AUTHOR IDS', 'AFFILIATION IDS']]
-
-        for publication in self.publications:
-            publication_row_list = self._get_row_list(publication)
-            table_list.append(publication_row_list)
-
-        table_string = tabulate.tabulate(table_list, tablefmt='fancy_grid')
-
-        return table_string
-
-    def _all_affiliations_observed_authors(self):
         for publication in self.publications:
             for author in publication.authors:
-                pass
+                author_id = int(author.id)
+                if author_id in self.author_ids:
+                    difference = list(set(author.affiliations) - set(self.affiliation_dict[author_id]))
+                    self.affiliation_dict[author_id] += difference
 
-    def _get_row_list(self, publication):
-        # The publication id
-        scopus_id_string = str(publication.id)
+    def get_string(self):
+        """
+        The string is a tabular display of three columns: The author id, the name of the author and the affiliation
+        ids, which have occurred in the given pool of publications, with each of the given authors being one row of
+        the table
 
-        # The first 20~ characters of the title for easier identification
-        if len(publication.title) < self.max_length:
-            title_string = publication.title
-        else:
-            title_string = '{}...'.format(publication.title[:self.max_length])
+        :return: the string
+        """
+        table_list = [['AUTHOR IDS', 'AUTHOR INDEX NAME', 'AFFILIATION IDS']]
 
-        # Getting only those author ids, which are among the observed authors
-        author_list = []
-        author_id_list = []
-        for author in publication.authors:
-            if self.observed_authors_model.contains(author):
-                author_list.append(author)
-                author_id_list.append(author.id)
-        authors_string = ', '.join(author_id_list)
-        authors_string = textwrap.fill(authors_string, self.max_length)
+        # Getting the row lists for all the authors
+        for author in self.authors:
+            author_row_list = self._get_row_list(author)
+            table_list.append(author_row_list)
 
-        # Getting only the affiliation ids of the observed authors
-        affiliation_id_list = []
-        for author in author_list:
-            affiliation_id_list += list(set(author.affiliations) - set(affiliation_id_list))
-            self.affiliations += list(set(affiliation_id_list) - set(self.affiliations))
+        table_string = tabulate.tabulate(table_list, tablefmt='fancy_grid')
+        return table_string
+
+    def _get_row_list(self, author):
+        """
+        Gets the a ordered list of items (author id, indexed name, affiliations) that will be used as a row in the
+        tabular display of the view.
+
+        :param author: The Author for which to produce the row
+        :return: The list acting as the table row
+        """
+        # Getting the string for the author id
+        author_id_string = str(author.id)
+
+        # Getting the name string
+        name_string = author.index_name
+
+        # Getting the string for the affiliation ids
+        affiliation_id_list = self[author]
         affiliations_string = ', '.join(affiliation_id_list)
-        affiliations_string = textwrap.fill(affiliations_string, self.max_length)
+        affiliations_string = textwrap.fill(affiliations_string, self.max_width)
 
         row_list = [
-            scopus_id_string,
-            title_string,
-            authors_string,
+            author_id_string,
+            name_string,
             affiliations_string
         ]
 
         return row_list
 
+    def __getitem__(self, item):
+        """
+        If given the author, will return the list of affiliations, that was created for him.
+
+        :param item: Author, AuthorProfile for the author directly or str int for the author id
+        :return: The list of affiliation ids that have occurred for that author in all the publications
+        """
+        if isinstance(item, Author) or isinstance(item, AuthorProfile):
+            return self.affiliation_dict[item.id]
+        elif isinstance(item, str) or isinstance(item, int):
+            return self.affiliation_dict[str(item)]
+
+    def __contains__(self, item):
+        """
+        If checked with a Author representation object, will return whether or not the author is part of the authors
+        that are being searched for.
+        If checked with a Publication object, will return whether that publication is part of the pubs that the
+        authors are bing processed with.
+
+        :param item: Publication, Author, AuthorProfile
+        :return: The boolean value if the object is part of this processing
+        """
+        if isinstance(item, Author) or isinstance(item, AuthorProfile):
+            return item.id in self.author_ids
+        elif isinstance(item, Publication):
+            # Since for the publications there is no much sense in maintaining an extra list for the scopus ids,
+            # checking for all the publications in the list
+            for publication in self.publications:
+                # The basic equals method checks if the object describe the same publication, by comparing the
+                # scopus ids
+                if publication.basic_equals(item):
+                    return True
+            return False
+
 
 class PublicationTableView:
-    def __init__(self, publication_list, max_length=40):
+
+    def __init__(self, publication_list, max_length=40, observed_authors=[]):
         self.publications = publication_list
+
+        self.observed_authors = observed_authors
+        self.observing = len(self.observed_authors) != 0
+
         self.max_length = max_length
 
     def get_string(self):
@@ -84,6 +129,13 @@ class PublicationTableView:
         return table_string
 
     def _get_row_list(self, publication):
+        """
+        Gets the a ordered list of items (scopus id, title , doi, eid, authors, affiliations) that will be used as a
+        row in the tabular display of the view.
+
+        :param publication: The publication for which to create the row list
+        :return: The list representing the row in the table
+        """
         # The publication id
         scopus_id_string = str(publication.id)
 
@@ -98,13 +150,10 @@ class PublicationTableView:
         eid_string = publication.eid
 
         # All the authors of the publication
-        author_id_list = map(lambda x: x.id, publication.authors)
-        authors_string = ', '.join(author_id_list)
-        authors_string = textwrap.fill(authors_string, self.max_length)
+        authors_string = self._get_authors_string(publication)
 
         # The affiliations of the publications
-        affiliations_string = ', '.join(publication.affiliations)
-        affiliations_string = textwrap.fill(affiliations_string, self.max_length)
+        affiliations_string = self._get_affiliations_string(publication)
 
         row_list = [
             scopus_id_string,
@@ -116,6 +165,54 @@ class PublicationTableView:
         ]
 
         return row_list
+
+    def _get_authors_string(self, publication):
+        """
+        Gets the string to be used in the column 'authors' for the row of the given publication.
+        If there are authors to be observed only uses the authors of the publication, that are part of the observed
+        authors.
+
+        :param publication: The publication for whose row to create the authors string
+        :return: The string to be displayed in the authors colum of th row for the given publication
+        """
+        # In case there is a author list specified to observe
+        if self.observing:
+            author_id_list = []
+            for author in publication.authors:
+                if author.id in self.observed_authors:
+                    author_id_list.append(author.id)
+        else:
+            author_id_list = list(map(lambda x: x.id, publication.authors))
+
+        authors_string = ', '.join(author_id_list)
+        authors_string = textwrap.fill(authors_string, self.max_length)
+
+        return authors_string
+
+    def _get_affiliations_string(self, publication):
+        """
+        Gets the string to be used for the column 'affiliation ids' for the row of the given publication.
+        If there are authors to observe, only lists the affiliations from those authors, otherwise all
+
+        :param publication: The publication for whose row to create the string to display
+        :return: The string to be displayed in the affiliations column of the row for the given publication
+        """
+        affiliation_id_list = []
+        for author in publication.authors:
+            if self.observing:
+                if author.id in self.observed_authors:
+                    difference = list(set(author.affiliations) - set(affiliation_id_list))
+                    affiliation_id_list += difference
+            else:
+                difference = list(set(author.affiliations) - set(affiliation_id_list))
+                affiliation_id_list += difference
+
+        # The affiliations of the publications
+        affiliations_string = ', '.join(publication.affiliations)
+        affiliations_string = textwrap.fill(affiliations_string, self.max_length)
+
+        return affiliations_string
+
 
 class PublicationWordpressCitationView:
 

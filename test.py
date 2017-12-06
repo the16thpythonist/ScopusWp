@@ -103,4 +103,34 @@ def test_table():
     print(string)
     pprint(view.affiliations)
 
-test_table()
+
+def test_affil_table():
+    from ScopusWp.views import AuthorsAffiliationsView
+
+    controller = ScopusWpController()
+    authors = controller.all_author_backup()
+    publications = controller.all_publication_backup()
+
+    view = AuthorsAffiliationsView(authors, publications)
+    string = view.get_string()
+
+    print(string)
+
+
+def build_all():
+    controller = ScopusWpController()
+    author_list = controller.get_observed_authors()
+    publication_list = []
+    for author in author_list:
+        _temp = []
+        for scopus_id in author.publications:
+            pub = controller.get_publication(scopus_id)
+            _temp.append(pub)
+        publication_list += _temp
+
+    controller.build_publications(publication_list)
+    controller.close()
+
+    controller.build_publications(publication_list)
+
+build_all()

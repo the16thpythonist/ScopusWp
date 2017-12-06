@@ -1,5 +1,6 @@
 from unidecode import unidecode
 
+
 class Publication:
 
     def __init__(self, scopus_id, eid, doi, author_list, citation_list, keyword_list, creator, title, description,
@@ -22,6 +23,29 @@ class Publication:
         self.affiliations = []
         for author in self.authors:
             self.affiliations += list(set(author.affiliations) - set(self.affiliations))
+
+    def basic_equals(self, publication):
+        """
+        basic comparison only means checking if the two Publication objects describe the same publication by comparing
+        the scopus id.
+
+        :param publication: The other Publication object to check, whether based on same publication
+        :return: The boolean value of whether or not
+        """
+        if isinstance(publication, Publication):
+            # basic compare only compares if the object describes the same publication, by comparing the scopus id
+            return self.id == publication.id
+        else:
+            return False
+
+    def advanced_equals(self, publication):
+        """
+        Not impl.
+        :param publication:
+        :return:
+        """
+        # Todo: method, that really compares all
+        raise NotImplementedError()
 
 
 class Author:

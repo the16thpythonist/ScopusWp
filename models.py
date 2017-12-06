@@ -93,6 +93,29 @@ class ObservedAuthorsModel:
                 # For one category there is already a dict, that assigns a list of author ids to a specific category
                 return self.category_author_dict[categories]
 
+    def __contains__(self, item):
+        """
+        The magic method for checking if a given author representation (Author or AuthorProfile object) are part of the
+        observed authors.
+
+        :param item: Either Author, AuthorProfile or int directly to check for if the author id
+        :return: The boolean value of whether or not the requested author is observed or not
+        """
+        if isinstance(item, Author) or isinstance(item, AuthorProfile):
+            # If the object is a author representation object, will get the author id from the object
+            author_id = int(item.id)
+        elif isinstance(item, int):
+            # Using a given int directly as the author id to check
+            author_id = item
+        else:
+            # TODO: Add logger to the class
+            return False
+
+        # Since the author category dict assigns the category strings to the int author ids, the keys of that dict
+        # are an iterable of the author ids of the observed authors
+        contains = author_id in self.author_category_dict.keys()
+        return contains
+
 
 # Database access singleton
 class Db:
