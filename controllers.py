@@ -1,3 +1,7 @@
+"""
+DEPENDENCIES tabulate, SQLldb
+"""
+
 import ScopusWp.config as cfg
 
 from wordpress_xmlrpc import Client
@@ -25,6 +29,35 @@ from unidecode import unidecode
 
 
 from pprint import pprint
+
+class KITOpenController:
+
+    def __init__(self):
+        # Getting the config instance for the project
+        self.config = cfg.Config.get_instance()
+
+        # Getting the logger for the the scopus part of the project
+        scopus_logger_id = cfg.SCOPUS_LOGGING_EXTENSION
+        self.logger = logging.getLogger(scopus_logger_id)
+
+        self.url_base = self.config['KITOPEN']['url']
+
+        self.query_base = {
+            'referencing': 'all',
+            'external_publications': 'all',
+            'lang': 'de',
+            'format': 'csl_json',
+            'style': 'kit-3lines-title_b-authors-other'
+        }
+
+    def request_search(self, query):
+        total_query = query.update(self.query_base)
+        # Preparing the url to which to send the GET request
+        url = '{}?{}'.format(self.url_base, urlparse.urlencode(total_query))
+        # Sending the url request and fetching the response
+        response = requests.get(url)
+
+        return response
 
 
 class ScopusController:
@@ -478,8 +511,12 @@ class ScopusPublicationController(ScopusController):
         journal = self._get_dict_item(coredata_dict, 'prism:publicationName', '')
         volume = self._get_dict_item(coredata_dict, 'prism:volume', '')
         date = self._get_dict_item(coredata_dict, 'prism:coverDate', '0-0-0')
+
+        # Fixed an issue where all tough I am working with the det dict item, that checks and has default value I then
+        # just assumed, that there must be a first list item in the creator entry list
         _creator_dict = self._get_dict_item(coredata_dict, 'dc:creator', {})
-        _creator_entry_dict = self._get_dict_item(_creator_dict, 'author', {})[0]
+        _creator_entry_list = self._get_dict_item(_creator_dict, 'author', [])
+        _creator_entry_dict = self._get_dict_item(_creator_entry_list, 0, {})
         creator = self._get_author(_creator_entry_dict)
 
         return title, description, creator, citation_count, eid, doi, journal, volume, date
@@ -624,6 +661,8 @@ class ScopusPublicationController(ScopusController):
         :return: The value of the dict
         """
         if isinstance(dictionary, dict) and key in dictionary.keys():
+            return dictionary[key]
+        elif isinstance(dictionary, list) and key < len(dictionary):
             return dictionary[key]
         else:
             error_message = 'There is no item to the key "{}" in the publication "{}" with the sub dict: {}'.format(
@@ -790,7 +829,8 @@ class ScopusWpController:
             relevant = False
             for author in publication.authors:
                 if self.observed_author_model.contains(author) and \
-                        (self.kit_ids[0] in author.affiliations or self.kit_ids[1] in author.affiliations):
+                        (self.kit_ids[0] in author.affiliations or self.kit_ids[1] in author.affiliations or
+                         self.kit_ids[2] in author.affiliations or self.kit_ids[3] in author.affiliations):
                     relevant = True
                     break
 

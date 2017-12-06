@@ -59,9 +59,7 @@ def relevant_test():
 
     controller = ScopusWpController()
 
-    author = controller.get_author(35303862100)
     relevant, irrelevant = controller.get_relevant_publications()
-
 
     string = (
         '####################################\n'
@@ -90,4 +88,4 @@ def test_affiliation(affid):
     d = json.loads(response.text)
     pprint(d)
 
-test_affiliation(110986687)
+relevant_test()
