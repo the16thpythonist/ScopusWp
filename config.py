@@ -10,8 +10,8 @@ PATH = os.path.dirname(os.path.realpath(__file__))
 
 LOGGING_PATH = os.path.join(PATH, 'logs')
 
-SCOPUS_LOGGING_EXTENSION = 'scopus'
-
+SCOPUS_LOGGING_EXTENSION = 'SCOPUS'
+SQL_LOGGING_EXTENSION = 'SQL'
 
 
 def _format_log_file_name(datetime_object, extension_string):
@@ -44,10 +44,12 @@ def log_exists(datetime_object, extension_string):
 
 def init_logging():
     datetime_object = datetime.datetime.now()
-    file_path = get_log_file_path(datetime_object, SCOPUS_LOGGING_EXTENSION)
+    file_path = get_log_file_path(datetime_object, '')
     # Checking if the log already exists, if not
-    if log_exists(datetime_object, SCOPUS_LOGGING_EXTENSION):
+    if log_exists(datetime_object, ''):
         file_mode = 'a'
+        with open(file_path, 'a') as file:
+            file.write('\n\nSTARTING A NEW SESSION:\n\n')
     else:
         file_mode = 'w+'
 

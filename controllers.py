@@ -6,9 +6,12 @@ from wordpress_xmlrpc.methods.posts import NewPost, EditPost, GetPost
 from wordpress_xmlrpc.methods.comments import NewComment, EditComment
 
 from ScopusWp.repr import Publication
-from ScopusWp.repr import Author
+from ScopusWp.repr import Author, AuthorProfile
 
-from ScopusWp.views import PublicationWordpressPostView, PublicationWordpressCitationView
+from ScopusWp.models import ObservedAuthorsModel, ScopusBackupModel
+
+from ScopusWp.views import PublicationWordpressPostView, PublicationWordpressCitationView, PublicationSimpleView
+from ScopusWp.views import AuthorSimpleView
 
 from xml.etree.ElementTree import Element, SubElement
 
@@ -18,42 +21,13 @@ import os
 import requests
 import json
 
-from pprint import pprint
+from unidecode import unidecode
 
-# TODO: generic dict unpacking
+
+from pprint import pprint
 
 
 class ScopusController:
-
-    COREDATA_KEY_DICT = {
-        'title': 'dc:title',
-        'description': 'dc:description',
-        'eid': 'eid',
-        'citation_count': 'citedby-count',
-        'author_citation_count': 'cited-by-count',
-        'document_count': 'document-count',
-        'journal': 'prism:publicationName',
-        'volume': 'prism:volume',
-        'date': 'prism:coverDate',
-        'id': 'dc:identifier',
-        'doi': 'prism:doi',
-        'creator': 'dc:creator'
-    }
-
-    COREDATA_DEFAULT_DICT = {
-        'dc:title': '',
-        'dc:description': '',
-        'dc:identifier': 0,
-        'dc:creator': {'author': [{'@auid': ''}]},
-        'eid': 0,
-        'citedby-count': 0,
-        'cited-by-count': 0,
-        'document-count': 0,
-        'prism:publicationName': '',
-        'prism:volume': 0,
-        'prism:coverDate': '',
-        'prism_doi': ''
-    }
 
     def __init__(self):
         # Getting the config instance for the project
@@ -75,17 +49,13 @@ class ScopusController:
             'X-ELS-APIKey': self.api_key
         }
 
-    def request_citations_search(self, eid, start=0, count=200):
-        query = {
-            'query': 'refeid({})'.format(eid),
-            'count': str(count),
-            'start': str(start)
-        }
-
-        response = self.request_search(query)
-        return response
-
     def request_search(self, query):
+        """
+        Sends the given query in the form of url encoding to the scopus search api
+
+        :param query: The query dictionary to be used for the url encoding
+        :return: The requests.response object of the query
+        """
         # Preparing the url to send the GET request to
         url_base = os.path.join(self.url_base, 'search/scopus')
         url = '{}?{}'.format(url_base, urlparse.urlencode(query))
@@ -93,11 +63,291 @@ class ScopusController:
         response = requests.get(url, headers=self.headers)
         return response
 
+    def _get_scopus_id_list(self, search_entry_list):
+        """
+        Gets a list of scopus ids for the search results represented by the entry dicts, which are the items of the
+        search entry list given
+
+        :param search_entry_list: The list of search results, extracted from the response dict of a scopus search
+        :return: A list of int scopus ids, one for each publication, that spring up as a result for the search
+        """
+        scopus_id_list = []
+        for search_entry_dict in search_entry_list:
+            scopus_id = self._get_scopus_id(search_entry_dict)
+            scopus_id_list.append(scopus_id)
+
+        return scopus_id_list
+
+    def _get_scopus_id(self, search_entry_dict):
+        """
+        Gets the scopus id of a publication, that is a search result represented by the entry dict given.
+        (Would also work for the coredata dict of a abstract retrieval)
+
+        :param search_entry_dict: A entry dict, that was part of the list for the search results extracted from the
+            response dict of a search result retrieval.
+        :return: The scopus id of the publication
+        """
+        scopus_id_string = self._get_dict_item(search_entry_dict, 'dc:identifier', '')
+        scopus_id = scopus_id_string.replace('SCOPUS_ID:', '')
+
+        return scopus_id
+
+    def _extract_search_response_dict(self, response_dict):
+        entry_list = self._get_dict_item(response_dict, 'entry', [])
+
+        return entry_list
+
+    def _get_dict_item(self, dictionary, key, default):
+        raise NotImplementedError()
+
+
+class ScopusAffiliationController(ScopusController):
+
+    def __init__(self):
+        ScopusController.__init__(self)
+
+        self.current_affiliation_id = None
+
+    def request_affiliation_retrieval(self, affiliation_id):
+        query = {
+            'field': 'affiliation-name,city,country'
+        }
+
+        # Preparing the url to which to send the GET request
+        url_base = os.path.join(self.url_base, 'affiliation/affiliation_id', str(affiliation_id))
+        url = '{}?{}'.format(url_base, urlparse.urlencode(query))
+        # Sending the url request and fetching the response
+        response = requests.get(url, headers=self.headers)
+
+        return response
+
+
+class ScopusAuthorController(ScopusController):
+
+    def __init__(self):
+        ScopusController.__init__(self)
+
+        self.current_author_id = None
+
+    def get_author(self, author_id):
+        # Setting the currently processed author id, for debugging and logging
+        self.current_author_id = author_id
+
+        # Requesting the author retrieval and processing the received response into a dict
+        response = self.request_author_retrieval(author_id)
+        response_dict = self._get_response_dict(response)
+
+        # Extracting the most important data sets from the response dict
+        (
+            coredata_dict,
+            name_dict,
+            affiliation_dict,
+            h_index
+        ) = self._extract_author_response_dict(response_dict)
+
+        # Getting the coredata
+        document_count = self._get_coredata(coredata_dict)
+
+        # Getting the name information
+        first_name, last_name = self._get_name_data(name_dict)
+
+        # Getting the affiliation data
+        (
+            affiliation_id,
+            country,
+            city,
+            institute
+        ) = self._get_affiliation_data(affiliation_dict)
+
+        # Getting the list of scopus ids for all of the authors publications
+        publication_id_list = self.get_publications(author_id)
+
+        author_profile = AuthorProfile(
+            author_id,
+            first_name,
+            last_name,
+            h_index,
+            publication_id_list,
+            0,
+            document_count,
+            affiliation_id,
+            country,
+            city,
+            institute
+        )
+
+        return author_profile
+
+    def get_publications(self, author_id):
+        """
+        Gets a list with the scopus ids for all the publications, which were (partially) written by the author, whose
+        author id was given.
+
+        :param author_id: The author id of the author, whose publications to request
+        :return: The list of scopus ids
+        """
+        # TODO: What to do for multiple authors
+        self.current_author_id = author_id
+
+        # Requesting the search for the author and processing the response into a dict
+        response = self.request_publications(author_id)
+        response_dict = self._get_response_dict(response)
+
+        # Extracting the most important data sets from the response
+        entry_list = self._extract_search_response_dict(response_dict)
+        publication_id_list = self._get_scopus_id_list(entry_list)
+
+        return publication_id_list
+
+    def request_author_retrieval(self, author_id):
+        """
+        Requests a Author retrieval for the author, who is identifies by the given author id
+
+        :param author_id: The id of the author, whose data is to be requested
+        :return: The requests.response object
+        """
+        # The query with the url parameters for all the fields the HTTP response is supposed to contain
+        query = {
+            'field': 'eid,given-name,surname,h-index,document-count,affiliation-current'
+        }
+
+        # Preparing the url to which to send the GET request
+        url_base = os.path.join(self.url_base, 'author/author_id', str(author_id))
+        url = '{}?{}'.format(url_base, urlparse.urlencode(query))
+        # Sending the url request and fetching the response
+        response = requests.get(url, headers=self.headers)
+
+        return response
+
+    def request_publications(self, author_id):
+        """
+        If given a single author id or a list of author ids, returning a requests.response for a scopus search, that
+        contains the information about all the publications.
+
+        :param author_id: # int/str - The author id, for which to request the publications
+            # list[int/str] - a list of author ids, of which all publications requested
+        :return:
+        """
+        # Making the process better by using a single request for getting the pubs of multiple authors, instead of
+        # having to request anew for each author
+        # TODO: If its more than 200, it will not get all the pubs
+        search_query_string = ''
+        if isinstance(author_id, int) or isinstance(author_id, str):
+            search_query_string = 'AU-ID({})'.format(author_id)
+        elif isinstance(author_id, list):
+            # If the input to the method is a list of author ids making a query string, that connects multiple searches
+            # by author id by an OR Operator
+            search_query_string_list = []
+            for au_id in author_id:
+                _temp_string = 'AU-ID({})'.format(au_id)
+                search_query_string_list.append(_temp_string)
+            search_query_string = ' OR '.join(search_query_string_list)
+
+        query = {
+            'query': search_query_string
+        }
+
+        response = self.request_search(query)
+        return response
+
+    def _get_coredata(self, coredata_dict):
+        document_count = self._get_dict_item(coredata_dict, 'document-count', 0)
+        return document_count
+
+    def _get_affiliation_data(self, affiliation_dict):
+        affiliation_id = self._get_dict_item(affiliation_dict, '@id', '')
+        affiliation_country = self._get_dict_item(affiliation_dict, 'affiliation-country', '')
+        affiliation_city = self._get_dict_item(affiliation_dict, 'affiliation-city', '')
+        affiliation_institute = self._get_dict_item(affiliation_dict, 'affiliation-name', '')
+
+        return affiliation_id, affiliation_country, affiliation_city, affiliation_institute
+
+    def _get_name_data(self, name_dict):
+        first_name = self._get_dict_item(name_dict, 'given-name', '')
+        last_name = self._get_dict_item(name_dict, 'surname', '')
+
+        return first_name, last_name
+
+    def _extract_author_response_dict(self, response_dict):
+
+        affiliation_dict = self._get_dict_item(response_dict, 'affiliation-current', {})
+        coredata_dict = self._get_dict_item(response_dict, 'coredata', {})
+        name_dict = self._get_dict_item(response_dict, 'preferred-name', {})
+        h_index = self._get_dict_item(response_dict, 'h-index', 0)
+
+        return coredata_dict, name_dict, affiliation_dict, h_index
+
+    def _get_response_dict(self, response):
+        """
+        Turns the requests.response for a search request or a author retrieval request into a dictionary
+
+        :param response: The requests.response object
+        :return: A dict, that contains all the relevant requested information
+        """
+        # Turning the json response text from the requests response into a dict
+        json_dict = json.loads(response.text)
+
+        # It could be either the response from a abstract retrieval or the response for a search query
+        if 'author-retrieval-response' in json_dict.keys():
+            response_dict = json_dict['author-retrieval-response'][0]
+        elif 'search-results' in json_dict:
+            response_dict = json_dict['search-results']
+        else:
+            # In case it contains neither the result to a author, abstract or search retrieval: Assuming something
+            # is wrong, returning an empty dict and writing an error into the logs
+            error_message = 'The response for the author "{}" was not valid: {}'.format(
+                self.current_author_id,
+                response.text
+            )
+            self.logger.warning(error_message)
+            # Returning an empty dict
+            return {}
+
+        # Returning the response dict
+        return response_dict
+
+    def _get_dict_item(self, dictionary, key, default):
+        """
+        Checks if the dictionary contains a item to the given key and returns that in case, but if there is no key
+        a warning will be written in the scopus log and the given default value will be returned.
+
+        :param dictionary: The dict from which to get an item, but unsure if the key really exists
+        :param key: The key which to use on the dict
+        :param default: The default value for that key, that is returned in case there is no value in the dict
+        :return: The value of the dict
+        """
+        if isinstance(dictionary, dict) and key in dictionary.keys():
+            return dictionary[key]
+        else:
+            error_message = 'There is no item to the key "{}" for the author "{}" with the sub dict: {}'.format(
+                key,
+                self.current_author_id,
+                str(dictionary)
+            )
+            self.logger.warning(error_message)
+            # Returning the default value, so that the program can still run in case there was no item in the dict
+            return default
+
+
+class ScopusPublicationController(ScopusController):
+
+    def __init__(self):
+        ScopusController.__init__(self)
+
+        self.current_scopus_id = None
+
     def request_abstract_retrieval(self, scopus_id):
+        """
+        Sends a request to the scopus abstract retrieval api, which is supposed to return the detailed information
+        about the publication, identified by the given scopus id.
+
+        :param scopus_id: The scopus id of the publication, for which to get the detailed information.
+        :return: The requests.response object
+        """
         # The query which will be added to the url and transmit the serach parameters
         query = {
             'field': ('description,title,authors,authkeywords,publicationName,volume,coverDate,'
-                      'eid,citedby-count,doi,creator')
+                      'eid,citedby-count,doi,creator,afid,affiliation-name')
         }
 
         # Preparing the url to which to send the GET request
@@ -109,378 +359,281 @@ class ScopusController:
 
         return response
 
-    def request_author_retrieval(self, author_id):
-        # The query with the url parameters for all the fields the HTTP response is supposed to contain
+    def request_citations_search(self, eid, start=0, count=200):
+        """
+        Sends a search query to the scopus search api, which is supposed to return all the citations for the
+        publication, identified by the given eid.
+
+        :param eid: The string eid identifier of the publication for which to get the citations
+        :param start: The start for the search results. Default start at 0
+        :param count: The amount of search results to display in a single response. Default 200 results (max.)
+        :return: The requests.response
+        """
         query = {
-            'field': 'eid,given-name,surname,h-index,document-count,affiliation-current'
-        }
-
-        # Preparing the url to which to send the GET request
-        url_base = os.path.join(self.url_base, 'author/author_id', str(author_id))
-        url = '{}?{}'.format(url_base, urlparse.urlencode(query))
-
-        # Sending the url request and fetching the response
-        response = requests.get(url, headers=self.headers)
-
-        return response
-
-    def request_author_publication_search(self, author_id):
-        query = {
-            'query': 'AU-ID({})'.format(author_id)
+            'query': 'refeid({})'.format(eid),
+            'count': str(count),
+            'start': str(start)
         }
 
         response = self.request_search(query)
         return response
 
-    def get_publication(self, scopus_ids):
+    def get_publication(self, scopus_id):
+        # Setting the scopus id, that is being processed at the moment by the controller for the logging purpose
+        self.current_scopus_id = scopus_id
 
-        if isinstance(scopus_ids, int) or isinstance(scopus_ids, str):
-            # Converting it into a string
-            scopus_id_string = str(scopus_ids)
+        # Requesting the abstract retrieval for the scopus id and processing the response into a dictionary
+        response = self.request_abstract_retrieval(scopus_id)
+        response_dict = self._get_response_dict(response)
 
-            # Requesting the abstract retrieval
-            response = self.request_abstract_retrieval(scopus_id_string)
+        # Extracting the main info from the response dict, which are the coredata dict, the
+        (
+            coredata_dict,
+            authors_entry_list,
+            keywords_entry_list,
+            affiliation_entry_list
+        ) = self._extract_abstract_response_dict(response_dict)
 
-            # Extracting the requests response object into the response dictionary
-            response_dict = self._extract_response(response)
-            # Extracting the authors, keywords and coredata dict from the response dict
-            s, coredata_dict, authors_dict, keywords_dict = self._extract_abstract_retrieval_response_dict(response_dict)
+        # Getting the coredata information
+        (
+            title,
+            description,
+            creator,
+            citation_count,
+            eid,
+            doi,
+            journal,
+            volume,
+            date
+        ) = self._get_coredata(coredata_dict)
 
-            # Extracting the authors dict into a list of author ids
-            author_id_list = self._extract_abstract_retrieval_authors_dict(authors_dict)
-            # Extracting the keywords dict into a list of string keywords
-            keywords_list = self._extract_abstract_retrieval_keywords_dict(keywords_dict)
-            # Extracting the coredata dict into another dictionary only containing the most important data
-            # using the same keys as the COREDATA_KEYS_DICT
-            data_dict = self._extract_abstract_retrieval_coredata_dict(coredata_dict)
+        # The list of all the author objects for the publication
+        author_list = self._get_author_list(authors_entry_list)
 
-            eid = data_dict['eid']
-            # Requesting the reference to all the publications, that cited this one
-            response = self.request_citations_search(eid)
-            response_dict = self._extract_response(response)
+        # The keywords of the publication
+        keyword_list = self._get_keyword_list(keywords_entry_list)
 
-            citation_scopus_id_list = self._extract_citation_search_response_dict(response_dict)
+        # The list of the scopus ids of those publications, that cite this publication
+        citation_list = self.get_citations(eid)
 
-            creator_author_id = data_dict['creator']
-            creator_author = self.get_author(creator_author_id)
+        # Creating the publication object from the data
+        publication = Publication(
+            scopus_id,
+            eid,
+            doi,
+            author_list,
+            citation_list,
+            keyword_list,
+            creator,
+            title,
+            description,
+            citation_count,
+            journal,
+            volume,
+            date,
+            []
+        )
 
-            publication = Publication(
-                scopus_id_string,
-                eid,
-                data_dict['doi'],
-                author_id_list,
-                citation_scopus_id_list,
-                keywords_list,
-                creator_author,
-                data_dict['title'],
-                data_dict['description'],
-                data_dict['citation_count'],
-                data_dict['journal'],
-                data_dict['volume'],
-                data_dict['date'],
-            )
+        return publication
 
-            return publication
+    def get_citations(self, eid):
+        """
+        gets a list with all the scopus ids of the publications, which cite the one publication given by the eid
 
-        elif isinstance(scopus_ids, list):
-            publication_list = []
-            for scopus_id in scopus_ids:
-                publication = self.get_publication(scopus_id)
-                publication_list.append(publication)
+        :param eid: The eid of the publication, of which to get the citations
+        :return: A list with the int scopus ids of the publications citing the specified publication
+        """
+        # Requesting the citation search and processing the response into a dictionary
+        response = self.request_citations_search(eid)
+        response_dict = self._get_response_dict(response)
 
-            return publication_list
+        # Getting the list of scopus ids for the citing publications
+        search_entry_list = self._extract_search_response_dict(response_dict)
+        scopus_id_list = self._get_scopus_id_list(search_entry_list)
 
-    def get_author(self, author_ids):
+        return scopus_id_list
 
-        if isinstance(author_ids, int) or isinstance(author_ids, str):
+    def _get_coredata(self, coredata_dict):
+        """
+        Extracts all the important coredata information from the given coredata dict
 
-            author_id_string = str(author_ids)
+        :param coredata_dict: The coredata dict, which was extracted from the response dict of a abstract retrieval
+        :return:
+        title - the string title of the publication
+        description - the string abstract of the publication
+        creator - the Author object for the main creator of the publication
+        citation_count - The int amount the publication was cited
+        eid - The eid id string
+        doi - The doi string
+        journal - The string name of the journal in which the publication was published
+        volume - The string volume of that journal
+        date - the date at which the publication was published. in teh format 'year-month-day'
+        """
+        title = self._get_dict_item(coredata_dict, 'dc:title', '')
+        description = self._get_dict_item(coredata_dict, 'dc:description', '')
+        citation_count = int(self._get_dict_item(coredata_dict, 'citedby-count', 0))
 
-            # Requesting the author retrieval
-            response = self.request_author_retrieval(author_id_string)
-            response_dict = self._extract_response(response)
+        eid = self._get_dict_item(coredata_dict, 'eid', '')
+        doi = self._get_dict_item(coredata_dict, 'prism:doi', '')
+        journal = self._get_dict_item(coredata_dict, 'prism:publicationName', '')
+        volume = self._get_dict_item(coredata_dict, 'prism:volume', '')
+        date = self._get_dict_item(coredata_dict, 'prism:coverDate', '0-0-0')
+        _creator_dict = self._get_dict_item(coredata_dict, 'dc:creator', {})
+        _creator_entry_dict = self._get_dict_item(_creator_dict, 'author', {})[0]
+        creator = self._get_author(_creator_entry_dict)
 
-            (
-                h_index,
-                coredata_dict,
-                affiliation_dict,
-                name_dict
-             ) = self._extract_author_retrieval_response_dict(response_dict)
+        return title, description, creator, citation_count, eid, doi, journal, volume, date
 
-            # Getting the coredata information
-            data_dict = self._extract_author_retrieval_coredata_dict(coredata_dict)
-            document_count = data_dict['document_count']
-            citation_count = data_dict['citation_count']
+    def _get_keyword_list(self, keyword_entry_list):
+        """
+        Creates a list of string keywords from the keyword entry list given
 
-            # Getting the affiliation information
-            (
-                affiliation_country,
-                affiliation_city,
-                affiliation_name
-            ) = self._extract_author_retrieval_affiliation_dict(affiliation_dict)
+        :param keyword_entry_list: The list of dicts, which was ectracted from the response dict of a abstract
+            retrieval response request.
+        :return: A list of string keywords for the publication
+        """
+        keyword_list = []
+        for keyword_entry_dict in keyword_entry_list:
+            keyword = self._get_dict_item(keyword_entry_dict, '$', '')
+            keyword_list.append(keyword)
 
-            # Getting the name information
-            first_name, last_name = self._extract_author_retrieval_name_dict(name_dict)
+        return keyword_list
 
-            # Getting the list of the publications
-            response = self.request_author_publication_search(author_id_string)
-            response_dict = self._extract_response(response)
+    def _get_author_list(self, author_entry_list):
+        """
+        Creates a list of Author objects, which contain the information of the author entry dicts from the list of
+        all the authors to the publication.
 
-            publication_scopus_id_list = self._extract_citation_search_response_dict(response_dict)
+        :param author_entry_list: The list of dict author entries, which was extracted from the response dict of a
+            abstract retrieval response.
+        :return: A list of Author objects, each one representing one author of the publication
+        """
+        author_list = []
+        for author_entry_dict in author_entry_list:
+            author = self._get_author(author_entry_dict)
+            author_list.append(author)
 
-            # Creating the author object
+        return author_list
 
-            author = Author(
-                int(author_id_string),
-                first_name,
-                last_name,
-                h_index,
-                publication_scopus_id_list,
-                citation_count,
-                document_count,
-                affiliation_country,
-                affiliation_city,
-                affiliation_name
-            )
+    def _get_author(self, author_entry_dict):
+        """
+        Creating an author object from the author entry dict given.
 
-            return author
+        :param author_entry_dict: The author entry dict is one item of the author entry list extracted from the
+            response dict of a abstract retrieval response
+        :return: An Author object containing the relevant information
+        """
+        # Getting the author id for the author
+        author_id = self._get_dict_item(author_entry_dict, '@auid', '')
 
-        if isinstance(author_ids, list):
-            author_list = []
+        # Getting the name info about the author, which is the first name and the last name
+        preferred_name_dict = self._get_dict_item(author_entry_dict, 'preferred-name', {})
+        first_name = self._get_dict_item(preferred_name_dict, 'ce:given-name', '')
+        last_name = self._get_dict_item(preferred_name_dict, 'ce:surname', '')
 
-            for author_id in author_ids:
-                author = self.get_author(author_id)
-                author_list.append(author)
+        # Getting the affiliation list, which is supposed to be a list of all the affiliation ids, with one affiliation
+        # id representing a institution, with which the author was affiliated with, during the publication
+        affiliation_list = []
+        _temp_affiliation = self._get_dict_item(author_entry_dict, 'affiliation', {})
+        # If the author only has one affiliation, the value to the key is a entry dict directly, but if the author has
+        # multiple it is a list of such entry dicts.
+        if isinstance(_temp_affiliation, dict):
+            affiliation_id = self._get_dict_item(_temp_affiliation, '@id', '')
+            affiliation_list.append(affiliation_id)
+        elif isinstance(_temp_affiliation, list):
+            for affiliation_entry_dict in _temp_affiliation:
+                affiliation_id = self._get_dict_item(affiliation_entry_dict, '@id', '')
+                affiliation_list.append(affiliation_id)
 
-            return author_list
+        # Creating the Author object from the extracted values
+        author = Author(author_id, first_name, last_name, affiliation_list)
+        return author
 
-    def _extract_response(self, response):
+    def _extract_abstract_response_dict(self, response_dict):
+        """
+        Extracts the response dict for a abstract retrieval response into its most important sub-data structures,
+        which are the dict for the coredata to the publication, the list containing the info about all the authors,
+        the list for the keywords, the list for the affiliations.
+
+        :param response_dict: The dict, that was extracted from the requests response of an abstract retrieval
+            response.
+        :return:
+        """
+        # Getting the coredata dict from the response dict
+        coredata_dict = self._get_dict_item(response_dict, 'coredata', {})
+
+        # Getting the list of author entry dicts from the reponse dict
+        author_dict = self._get_dict_item(response_dict, 'authors', {})
+        author_entry_list = self._get_dict_item(author_dict, 'author', [])
+
+        # Getting the keywords entry list. This is a list, that contains dictionaries, that each contain the
+        # information about one keyword, which is associated with one of the authors of the pub
+        keyword_dict = self._get_dict_item(response_dict, 'authkeywords', {})
+        keyword_entry_dict = self._get_dict_item(keyword_dict, 'author-keyword', [])
+
+        # Getting the list of affiliation entries, which is a list of dicts, that each contain information about one
+        # of the publications affiliation institutions
+        _temp_affiliation = self._get_dict_item(response_dict, 'affiliation', [])
+        if isinstance(_temp_affiliation, dict):
+            # If there is only one affiliation for the publication, the value to the affiliation key will be a single
+            # entry dict instead of a list of such dicts, but turning this into a list of one item, as not to cause
+            # any special cases in further processing of the data
+            affiliation_entry_list = [_temp_affiliation]
+        else:
+            affiliation_entry_list = _temp_affiliation
+
+        return coredata_dict, author_entry_list, keyword_entry_dict, affiliation_entry_list
+
+    def _get_response_dict(self, response):
+        """
+        converts the requests response object into a dict (JSON)
+
+        :param response: The requests response from either a abstract retrieval or a search query
+        :return: The dict containing all the necessary information
+        """
         # Getting the whole response dict from the encoded json string
         json_dict = json.loads(response.text)
 
-        # Now checking which type of response it is by checking for keys in the dict
-        if 'abstracts-retrieval-response' in json_dict:
+        # It could be either the response from a abstract retrieval or the response for a search query
+        if 'abstracts-retrieval-response' in json_dict.keys():
             response_dict = json_dict['abstracts-retrieval-response']
-        elif 'author-retrieval-response' in json_dict:
-            response_dict = json_dict['author-retrieval-response'][0]
         elif 'search-results' in json_dict:
             response_dict = json_dict['search-results']
         else:
             # In case it contains neither the result to a author, abstract or search retrieval: Assuming something
             # is wrong, returning an empty dict and writing an error into the logs
-            self.logger.error('The response did not contain a valid content: response text: {}'.format(response.text))
+            error_message = 'The response for the publication "{}" was not valid: {}'.format(
+                self.current_scopus_id,
+                response.text
+            )
+            self.logger.warning(error_message)
+            # Returning an empty dict
             return {}
 
         # Returning the response dict
         return response_dict
 
-    def _extract_citation_search_response_dict(self, response_dict):
-        scopus_id_list = []
-        citation_entry_dict_list = response_dict['entry']
-
-        if 'error' in citation_entry_dict_list[0].keys():
-            return []
-
-        for citation_entry_dict in citation_entry_dict_list:
-            scopus_id = citation_entry_dict['dc:identifier'].replace('SCOPUS_ID:', '')
-            scopus_id_list.append(scopus_id)
-
-        return scopus_id_list
-
-    def _extract_author_retrieval_response_dict(self, response_dict):
-
-        # Getting the h index of the author
-        if 'h-index' in response_dict.keys():
-            h_index = int(response_dict['h-index'])
-        else:
-            error_message = 'No h index int the author response with the dict: {}'.format(str(response_dict))
-            self.logger.warning(error_message)
-            h_index = 0
-
-        if 'coredata' in response_dict.keys():
-            coredata_dict = response_dict['coredata']
-        else:
-            error_message = 'No coredata in the author response with the dict: {}'.format(str(response_dict))
-            self.logger.warning(error_message)
-            coredata_dict = {}
-
-        if 'affiliation-current' in response_dict.keys():
-            affiliation_dict = response_dict['affiliation-current']
-        else:
-            error_message = 'No affiliation in author response with the dict: {}'.format(str(response_dict))
-            self.logger.warning(error_message)
-            affiliation_dict = {}
-
-        if 'preferred-name' in response_dict.keys():
-            name_dict = response_dict['preferred-name']
-        else:
-            error_message = 'No name in author response with dict: {}'.format(str(response_dict))
-            self.logger.warning(error_message)
-            name_dict = {}
-
-        return h_index, coredata_dict, affiliation_dict, name_dict
-
-    def _extract_author_retrieval_coredata_dict(self, coredata_dict):
-        citation_count = self._get_coredata_item(coredata_dict, 'author_citation_count')
-        document_count = self._get_coredata_item(coredata_dict, 'document_count')
-
-        return_dict = {
-            'citation_count': int(citation_count),
-            'document_count': int(document_count)
-        }
-
-        return return_dict
-
-    def _extract_author_retrieval_affiliation_dict(self, affiliation_dict):
-        affiliation_city = affiliation_dict['affiliation-city']
-        affiliation_country = affiliation_dict['affiliation-country']
-        affiliation_name = affiliation_dict['affiliation-name']
-
-        return affiliation_country, affiliation_city, affiliation_name
-
-    def _extract_author_retrieval_name_dict(self, name_dict):
-        first_name = name_dict['given-name']
-        last_name = name_dict['surname']
-
-        return first_name, last_name
-
-    def _extract_abstract_retrieval_response_dict(self, response_dict):
-        # Checking for the core data dict
-        if 'coredata' in response_dict.keys():
-            coredata_dict = response_dict['coredata']
-            # Getting the scopus id from the coredata dict so that this can also be returned
-            scopus_id = self._get_coredata_item(coredata_dict, 'id')
-        else:
-            error_message = 'No coredata in the response with the dictionary: {}'.format(str(response_dict))
-            self.logger.warning(error_message)
-            coredata_dict = {}
-            scopus_id = 0
-
-        # Checking for the keywords dict
-        if 'authkeywords' in response_dict.keys():
-            keywords_dict = response_dict['authkeywords']
-        else:
-            error_message = 'No keywords dict in the response with the dictionary: {}'.format(str(response_dict))
-            self.logger.warning(error_message)
-            keywords_dict = {}
-
-        # Checking the authors dict
-        if 'authors' in response_dict.keys():
-            authors_dict = response_dict['authors']
-        else:
-            error_message = 'No keywords dict in the response with the dictionary: {}'.format(str(response_dict))
-            self.logger.warning(error_message)
-            authors_dict = {}
-
-        return scopus_id, coredata_dict, authors_dict, keywords_dict
-
-    def _extract_abstract_retrieval_keywords_dict(self, keywords_dict):
+    def _get_dict_item(self, dictionary, key, default):
         """
+        Checks if the dictionary contains a item to the given key and returns that in case, but if there is no key
+        a warning will be written in the scopus log and the given default value will be returned.
 
-        :param keywords_dict:
-        :return: A list of string keywords
+        :param dictionary: The dict from which to get an item, but unsure if the key really exists
+        :param key: The key which to use on the dict
+        :param default: The default value for that key, that is returned in case there is no value in the dict
+        :return: The value of the dict
         """
-        keyword_list = []
-        keywords_entry_dict_list = keywords_dict['author-keyword']
-
-        for keywords_entry_dict in keywords_entry_dict_list:
-            keyword = keywords_entry_dict['$']
-            keyword_list.append(keyword)
-
-        return keyword_list
-
-    def _extract_abstract_retrieval_authors_dict(self, authors_dict):
-        """
-
-        :param authors_dict:
-        :return: a list with the author id's
-        """
-        author_id_list = []
-        author_entry_dict_list = authors_dict['author']
-
-        for author_entry_dict in author_entry_dict_list:
-            author_id = self._get_author_id(author_entry_dict)
-            author_id_list.append(author_id)
-
-        return author_id_list
-
-    def _get_author_id(self, author_dict):
-        author_id = author_dict['@auid']
-        return author_id
-
-    def _extract_abstract_retrieval_coredata_dict(self, coredata_dict):
-
-        title = self._get_coredata_item(coredata_dict, 'title')
-        description = self._get_coredata_item(coredata_dict, 'description')
-        citation_count = self._get_coredata_item(coredata_dict, 'citation_count')
-
-        eid = self._get_coredata_item(coredata_dict, 'eid')
-        journal = self._get_coredata_item(coredata_dict, 'journal')
-        volume = self._get_coredata_item(coredata_dict, 'volume')
-        date = self._get_coredata_item(coredata_dict, 'date')
-        doi = self._get_coredata_item(coredata_dict, 'doi')
-
-        # Getting the creator author id from the coredata dict
-        author_dict = self._get_coredata_item(coredata_dict, 'creator')['author'][0]
-        creator_id = self._get_author_id(author_dict)
-
-        return_dict = {
-            'title': title,
-            'description': description,
-            'citation_count': citation_count,
-            'eid': eid,
-            'journal': journal,
-            'volume': volume,
-            'date': date,
-            'doi': doi,
-            'creator': creator_id
-        }
-
-        return return_dict
-
-    def _get_coredata_item(self, coredata_dict, key):
-        # Checking if the key is heuristic in the way, that is purely descriptional and needs to be mapped to an actual
-        # key of the coredata dict structure or if it already is one ofe those keys
-        coredata_key, is_native_key = self._get_coredata_key(key)
-
-        if coredata_key in coredata_dict.keys():
-            coredata_value = coredata_dict[coredata_key]
-            return coredata_value
+        if isinstance(dictionary, dict) and key in dictionary.keys():
+            return dictionary[key]
         else:
-            # Getting the default value for the specific key, so that there is being at least SOME sort of data
-            # returned
-            default_value = self._get_coredata_default(key)
-
-            error_message = 'The coredata dict did not contain data for the key {}'.format(key)
-            self.logger.debug(error_message)
-
-            return default_value
-
-    def _get_coredata_default(self, key):
-        # Getting the key for the coredata dict structure
-        coredata_key, is_native_key = self._get_coredata_key(key)
-
-        # Getting the default value for the according key from the internal dictionary, that maps the keys
-        # to their designated default values (in case, there is nothing specified in the response)
-        coredata_default = self.COREDATA_DEFAULT_DICT[coredata_key]
-
-        return coredata_default
-
-    def _get_coredata_key(self, key):
-
-        # Checking if the key already is a key of the coredata dict
-        if key in self.COREDATA_KEY_DICT.values():
-            # In case the key is already a coredata key it is returned just the way it is
-            return key, True
-
-        else:
-            if key in self.COREDATA_KEY_DICT.keys():
-                coredata_key = self.COREDATA_KEY_DICT[key]
-                return coredata_key, False
-            else:
-                error_message = 'The key "{}" is not a valid descriptor for a coredata key'.format(key)
-                self.logger.error(error_message)
-                raise KeyError(error_message)
+            error_message = 'There is no item to the key "{}" in the publication "{}" with the sub dict: {}'.format(
+                key,
+                self.current_scopus_id,
+                str(dictionary)
+            )
+            self.logger.warning(error_message)
+            # Returning the default value, so that the program can still run in case there was no item in the dict
+            return default
 
 
 class WordpressController:
@@ -583,3 +736,212 @@ class WordpressController:
 
         self.client.call(EditPost(wordpress_id, post))
 
+
+# TODO: when a list of publications is given dont work them all and than print, print after each other
+class ScopusWpController:
+
+    def __init__(self):
+        self.kit_ids = ['60102538', '60027314']
+        # IPE or secondary KIT ids
+        self.kit_ids += ['114062636', '110986687']
+        """
+        110986687 Als KIT;Karlsruhe;UNITED KINGDOM; Offensichtlich falsch, Erfindet scopus neue ids?
+        """
+
+        # Getting the config instance for the project
+        self.config = cfg.Config.get_instance()
+
+        self.logger = logging.getLogger('CONTROLLER')
+
+        # Creating the controllers for the interfacing with the scopus database
+        self.scopus_publication_controller = ScopusPublicationController()
+        self.scopus_author_controller = ScopusAuthorController()
+        self.scopus_affiliation_controller = ScopusAffiliationController()
+        # Creating the wordpress controller
+        self.wordpress_controller = None
+
+        self.observed_author_model = ObservedAuthorsModel()
+
+        self.backup_model = ScopusBackupModel()
+
+    def close(self):
+        self.backup_model.close()
+
+    # TOP LEVEL METHODS
+
+    def get_relevant_publications(self):
+
+        # Getting all publications of all the observed authors
+        author_list = self.get_observed_authors()
+
+        # Getting the publications
+        publication_list = []
+        for author in author_list:
+            _temp_publications = []
+            for scopus_id in author.publications:
+                publication = self.get_publication(scopus_id)
+                _temp_publications.append(publication)
+            publication_list += _temp_publications
+
+        # Filtering the publications by only those, who have one of the affiliation ids
+        relevant_publications = []
+        irrelevant_publications = []
+        for publication in publication_list:
+            relevant = False
+            for author in publication.authors:
+                if self.observed_author_model.contains(author) and \
+                        (self.kit_ids[0] in author.affiliations or self.kit_ids[1] in author.affiliations):
+                    relevant = True
+                    break
+
+            if relevant:
+                relevant_publications.append(publication)
+            else:
+                irrelevant_publications.append(publication)
+
+        return relevant_publications, irrelevant_publications
+
+    # THE SCOPUS DATABASE REQUEST METHODS
+
+    def get_publication(self, scopus_id):
+        """
+        Gets a Publication object for the publication, identified by the given scopus id.
+        Uses the ScopusPublicationController to send an abstract retrieval request to the scopus server.
+
+        :param scopus_id: The scopus id, of which to get the info
+        :return: A Publication object containing all the relevant data of the requested publication
+        """
+        return self.scopus_publication_controller.get_publication(scopus_id)
+
+    def get_author(self, author_id):
+        """
+        Gets an AuthorProfile of the author, identified by the given author id.
+        Uses the ScopusAuthorController to send an author retrieval request to the scopus server.
+
+        :param author_id: The int id, of the author to retrieve the data from
+        :return: An AuthorProfile object, that contains all the relevant data if the author
+        """
+        return self.scopus_author_controller.get_author(author_id)
+
+    # THE BACKUP DATABASE MODEL METHODS
+
+    def build_authors(self, author_list):
+        """
+        For every author in the list: If there is already an entry in the database for that author overrides that, if
+        there is not yet an entry creates a new from the AuthorProfile object.
+
+        :param author_list: A list of AuthorProfile objects
+        :return: void
+        """
+        # For every author in the author list trying to create a new entry in the database
+        for author in author_list:
+            self.print_author_profile(author)
+            self.backup_model.insert_author(author)
+
+    def build_publications(self, publication_list):
+        """
+        For every publication in the list: If there already is an entry in the database for the publication overrides
+        that entry, if there is no entry creates a new from the Publication object
+        :param publication_list:
+        :return:
+        """
+        for publication in publication_list:
+            self.print_publication_info(publication)
+            self.backup_model.insert_publication(publication)
+
+    def get_author_backup(self, author_id):
+        """
+        If given an author id retrieves the data of that author and returns an AuthorProfile object.
+
+        :param author_id: the string or int author id for the author of interest
+        :return: AuthorProfile object
+        """
+        if isinstance(author_id, str) or isinstance(author_id, int):
+            author_profile = self.backup_model.get_author(author_id)
+            return author_profile
+        elif isinstance(author_id, AuthorProfile):
+            author_profile = self.get_author_backup(author_id.id)
+            return author_profile
+
+    def all_author_backup(self):
+        return self.backup_model.get_all_authors()
+
+    def get_publication_backup(self, scopus_id):
+        """
+        If given a scopus id retrieves the data of that publication and returns the Publication object
+
+        :param scopus_id: The string or int scopus id for the publication of interest
+        :return: Publication object
+        """
+        # In case the passed data is actually a scopus id, calling the according method of the model to get the
+        # publication from the backup database
+        if isinstance(scopus_id, str) or isinstance(scopus_id, int):
+            publication = self.backup_model.get_publication(scopus_id)
+            return publication
+        elif isinstance(scopus_id, Publication):
+            publication = self.get_publication_backup(scopus_id.id)
+            return publication
+
+    def all_publication_backup(self):
+        return self.backup_model.get_all_publications()
+
+    def save_author_backup(self, author):
+        self.backup_model.insert_author(author)
+
+    def save_publication_backup(self, publication):
+        self.backup_model.insert_publication(publication)
+
+    # THE OBSERVED AUTHOR MODEL METHODS
+
+    def get_observed_authors(self, categories=None):
+        """
+        Gets a list of all the AuthorProfiles for the authors, that are currently being observed
+
+        :param categories: Could be a list of strings, each one a sepcific category of authors, for which to get the
+            AuthorProfiles. Defaults to None. If None ALL authors will used.
+        :return: A list of AuthorProfile objects
+        """
+        # Getting the author ids for all the observed authors
+        author_id_list = self.observed_author_model.get_observed_authors(categories=categories)
+
+        # Requesting the author retrieval for each one of them
+        author_list = []
+        for author_id in author_id_list:
+            author = self.scopus_author_controller.get_author(author_id)
+            author_list.append(author)
+
+        return author_list
+
+    # DISPLAYING METHODS
+
+    def print_publications_info(self, publication_list):
+        for publication in publication_list:
+            self.print_publication_info(publication)
+            print('\n\n')
+
+    def print_publication_info(self, publication):
+        string = self._get_publication_info_string(publication)
+        print(string)
+
+        return string
+
+    def _get_publication_info_string(self, publication):
+
+        publication_view = PublicationSimpleView(publication)
+        publication_view_string = publication_view.get_string()
+        return publication_view_string
+
+    def print_observed_authors_profile(self):
+        observed_authors = self.observed_author_model.get_observed_authors()
+        self.print_author_profile(observed_authors)
+
+    def print_author_profile(self, author):
+
+        author_profile_string = self._get_author_profile_string(author)
+        print(author_profile_string)
+
+    def _get_author_profile_string(self, author):
+
+        author_profile_view = AuthorSimpleView(author)
+        author_profile_view_string = author_profile_view.get_string()
+        return author_profile_view_string
