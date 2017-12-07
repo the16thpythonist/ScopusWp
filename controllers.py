@@ -15,8 +15,9 @@ from ScopusWp.repr import Affiliation
 
 from ScopusWp.models import ObservedAuthorsModel, ScopusBackupModel
 
-from ScopusWp.views import PublicationWordpressPostView, PublicationWordpressCitationView, PublicationSimpleView
-from ScopusWp.views import AuthorSimpleView
+from ScopusWp.views import PublicationWordpressPostView, PublicationWordpressCitationView
+from ScopusWp.views import AuthorSimpleView, AffiliationSimpleView, PublicationSimpleView
+from ScopusWp.views import AuthorsAffiliationsView, AffiliationTableView
 
 from xml.etree.ElementTree import Element, SubElement
 
@@ -158,6 +159,7 @@ class ScopusAffiliationController(ScopusController):
 
         # Creating the new affiliation representation object
         affiliation = Affiliation(
+            affiliation_id,
             country,
             city,
             institute
@@ -188,11 +190,21 @@ class ScopusAffiliationController(ScopusController):
 
     def _get_response_dict(self, response):
         # Turning the json response text from the requests response into a dict
-        json_dict = json.loads(response.text)
+        try:
+            json_dict = json.loads(response.text)
+        except Exception as e:
+            # In case it contains neither the result to a author, abstract or search retrieval: Assuming something
+            # is wrong, returning an empty dict and writing an error into the logs
+            error_message = 'The response for the affiliation "{}" was not valid: {}'.format(
+                self.current_affiliation_id,
+                str(e)
+            )
+            self.logger.warning(error_message)
+            return {}
 
         # It could be either the response from a abstract retrieval or the response for a search query
-        if 'author-retrieval-response' in json_dict.keys():
-            response_dict = json_dict['author-retrieval-response'][0]
+        if 'affiliation-retrieval-response' in json_dict.keys():
+            response_dict = json_dict['affiliation-retrieval-response']
         else:
             # In case it contains neither the result to a author, abstract or search retrieval: Assuming something
             # is wrong, returning an empty dict and writing an error into the logs
@@ -872,7 +884,35 @@ class ScopusWpController:
     def close(self):
         self.backup_model.close()
 
-    # TOP LEVEL METHODS
+    #####################
+    # TOP LEVEL METHODS #
+    #####################
+
+    def print_author_affiliations(self, author_list, publication_list):
+        info_string = (
+            'The following table contains the different affiliation ids that have occurred for the given authors \n'
+            'in the given test set of publications:\n'
+        )
+        print(info_string)
+
+        # Getting the author affiliations view and printing the table, that displays the affiliations that have
+        # occurred for the different authors among the sample list of publications
+        author_affiliations_view = AuthorsAffiliationsView(author_list, publication_list)
+        author_affiliation_table_string = author_affiliations_view.get_string()
+        print(author_affiliation_table_string)
+
+        # Getting the list of all the occurred affiliations and printing the info for all of them
+        affiliation_id_list = author_affiliations_view.all_affiliations()
+        affiliation_list = []
+        for affiliation_id in affiliation_id_list:
+            affiliation = self.get_affiliation(affiliation_id)
+            affiliation_list.append(affiliation)
+
+        affiliation_table_view = AffiliationTableView(affiliation_list)
+        affiliation_table_string = affiliation_table_view.get_string()
+        print(affiliation_table_string)
+
+        # self.print_affiliations_info(affiliation_list)
 
     def get_relevant_publications(self):
 
@@ -928,6 +968,9 @@ class ScopusWpController:
         :return: An AuthorProfile object, that contains all the relevant data if the author
         """
         return self.scopus_author_controller.get_author(author_id)
+
+    def get_affiliation(self, affiliation_id):
+        return self.scopus_affiliation_controller.get_affiliation(affiliation_id)
 
     # THE BACKUP DATABASE MODEL METHODS
 
@@ -1020,10 +1063,19 @@ class ScopusWpController:
 
     # DISPLAYING METHODS
 
+    def print_affiliations_info(self, affiliation_list):
+        for affiliation in affiliation_list:
+            self.print_affiliation_info(affiliation)
+            print(' ')
+
+    def print_affiliation_info(self, affiliation):
+        affiliation_view = AffiliationSimpleView(affiliation)
+        affiliation_view_string = affiliation_view.get_string()
+        print(affiliation_view_string)
+
     def print_publications_info(self, publication_list):
         for publication in publication_list:
             self.print_publication_info(publication)
-            print('\n\n')
 
     def print_publication_info(self, publication):
         string = self._get_publication_info_string(publication)

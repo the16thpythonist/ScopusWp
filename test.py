@@ -111,10 +111,7 @@ def test_affil_table():
     authors = controller.all_author_backup()
     publications = controller.all_publication_backup()
 
-    view = AuthorsAffiliationsView(authors, publications)
-    string = view.get_string()
-
-    print(string)
+    controller.print_author_affiliations(authors, publications)
 
 
 def build_all():
@@ -133,4 +130,4 @@ def build_all():
 
     controller.build_publications(publication_list)
 
-test_affiliation(109707652)
+test_affil_table()

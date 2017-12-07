@@ -2,7 +2,7 @@ import datetime
 import textwrap
 import tabulate
 
-from ScopusWp.repr import Author, AuthorProfile
+from ScopusWp.repr import Author, AuthorProfile, Affiliation
 from ScopusWp.repr import Publication
 
 
@@ -27,6 +27,8 @@ class AuthorsAffiliationsView:
                 author_id = int(author.id)
                 if author_id in self.author_ids:
                     difference = list(set(author.affiliations) - set(self.affiliation_dict[author_id]))
+                    if '' in difference:
+                        difference.remove('')
                     self.affiliation_dict[author_id] += difference
 
     def get_string(self):
@@ -46,6 +48,14 @@ class AuthorsAffiliationsView:
 
         table_string = tabulate.tabulate(table_list, tablefmt='fancy_grid')
         return table_string
+
+    def all_affiliations(self):
+        affiliation_list = []
+        for author in self.authors:
+            difference = list(set(self[author]) - set(affiliation_list))
+            affiliation_list += difference
+
+        return affiliation_list
 
     def _get_row_list(self, author):
         """
@@ -107,6 +117,38 @@ class AuthorsAffiliationsView:
                 if publication.basic_equals(item):
                     return True
             return False
+
+
+class AffiliationTableView:
+
+    def __init__(self, affiliation_list, max_width=40):
+        self.affiliations = affiliation_list
+        self.max_width = max_width
+
+    def get_string(self):
+        table_list = [['AFFIL. IDS', 'COUNTRY', 'CITY', 'INSTITUTE']]
+
+        for affiliation in self.affiliations:
+            affiliation_row_list = self._get_row_list(affiliation)
+            table_list.append(affiliation_row_list)
+
+        table_string = tabulate.tabulate(table_list, tablefmt='fancy_grid')
+        return table_string
+
+    def _get_row_list(self, affiliation):
+        # Normalizing the strings to the maximum length
+        country_string = textwrap.fill(affiliation.country, self.max_width)
+        city_string = textwrap.fill(affiliation.city, self.max_width)
+        institute_string = textwrap.fill(affiliation.institute, self.max_width)
+
+        row_list = [
+            affiliation.id,
+            country_string,
+            city_string,
+            institute_string
+        ]
+
+        return row_list
 
 
 class PublicationTableView:
@@ -349,14 +391,14 @@ class AffiliationSimpleView:
     def __init__(self, affiliation):
         self.affiliation = affiliation
 
-    def _get_string(self):
+    def get_string(self):
 
         string = (
             'AFFILIATION\n'
             '   id:         {id}\n'
             '   country:    {country}\n'
             '   city:       {city}\n'
-            '   institute:  {institute}\n'
+            '   institute:  {institute}'
         ).format(
             id=self.affiliation.id,
             country=self.affiliation.country,
