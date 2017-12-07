@@ -344,6 +344,29 @@ class PublicationWordpressPostView:
         return authors_string
 
 
+class AffiliationSimpleView:
+
+    def __init__(self, affiliation):
+        self.affiliation = affiliation
+
+    def _get_string(self):
+
+        string = (
+            'AFFILIATION\n'
+            '   id:         {id}\n'
+            '   country:    {country}\n'
+            '   city:       {city}\n'
+            '   institute:  {institute}\n'
+        ).format(
+            id=self.affiliation.id,
+            country=self.affiliation.country,
+            city=self.affiliation.city,
+            institute=self.affiliation.institute
+        )
+
+        return string
+
+
 class PublicationSimpleView:
 
     def __init__(self, publication, width=120, indent=14):
@@ -379,7 +402,7 @@ class PublicationSimpleView:
             '    date:     {date}\n'
             '    Affiliations:\n\n'
             '{affil}\n'
-            '    Authors:'
+            '    Authors:\n'
             '{profiles}'
         ).format(
             id=str(self.publication.id),

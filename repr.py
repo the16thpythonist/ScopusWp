@@ -101,3 +101,13 @@ class AuthorProfile:
         self.country = affiliation_country
         self.city = affiliation_city
         self.institute = affiliation_name
+
+
+class Affiliation:
+
+    def __init__(self, affiliation_id, country, city, institute):
+        self.id = affiliation_id
+        self.country = country
+        self.city = city
+        self.institute = institute
+

@@ -133,4 +133,4 @@ def build_all():
 
     controller.build_publications(publication_list)
 
-build_all()
+test_affiliation(109707652)
