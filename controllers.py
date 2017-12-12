@@ -13,7 +13,9 @@ from ScopusWp.repr import Publication
 from ScopusWp.repr import Author, AuthorProfile
 from ScopusWp.repr import Affiliation
 
-from ScopusWp.models import ObservedAuthorsModel, ScopusBackupModel
+from ScopusWp.models import ObservedAuthorsModel, ScopusBackupModel, CacheModel, WordpressReferenceModel
+
+from ScopusWp.processors import PublicationSetSubtractionProcessor
 
 from ScopusWp.views import PublicationWordpressPostView, PublicationWordpressCitationView
 from ScopusWp.views import AuthorSimpleView, AffiliationSimpleView, PublicationSimpleView
@@ -772,9 +774,9 @@ class WordpressController:
         # Creating the client object from the login data
         self.client = Client(self.url, self.username, self.password)
 
-    def post_publication(self, publication, author_list):
+    def post_publication(self, publication):
         # Creating the view specifically for the wordpress posts
-        wp_post_view = PublicationWordpressPostView(publication, author_list)
+        wp_post_view = PublicationWordpressPostView(publication)
 
         post = WordPressPost()
 
@@ -858,12 +860,6 @@ class WordpressController:
 class ScopusWpController:
 
     def __init__(self):
-        self.kit_ids = ['60102538', '60027314']
-        # IPE or secondary KIT ids
-        self.kit_ids += ['114062636', '110986687']
-        """
-        110986687 Als KIT;Karlsruhe;UNITED KINGDOM; Offensichtlich falsch, Erfindet scopus neue ids?
-        """
 
         # Getting the config instance for the project
         self.config = cfg.Config.get_instance()
@@ -875,10 +871,11 @@ class ScopusWpController:
         self.scopus_author_controller = ScopusAuthorController()
         self.scopus_affiliation_controller = ScopusAffiliationController()
         # Creating the wordpress controller
-        self.wordpress_controller = None
+        self.wordpress_controller = None  # WordpressController()
 
         self.observed_author_model = ObservedAuthorsModel()
-
+        self.cache_model = CacheModel()
+        self.wordpress_reference_model = WordpressReferenceModel()
         self.backup_model = ScopusBackupModel()
 
     def close(self):
@@ -914,40 +911,48 @@ class ScopusWpController:
 
         # self.print_affiliations_info(affiliation_list)
 
-    def get_relevant_publications(self):
+    def update_publications_wordpress(self):
+        # Getting the new publications
+        new_publications = self.new_publications()
 
-        # Getting all publications of all the observed authors
-        author_list = self.get_observed_authors()
+        # Filtering the publications
+        (
+            whitelist_publications,
+            blacklist_publications,
+            remaining_publications
+        ) = self.filter_publications(new_publications)
 
-        # Getting the publications
-        publication_list = []
-        for author in author_list:
-            _temp_publications = []
-            for scopus_id in author.publications:
-                publication = self.get_publication(scopus_id)
-                _temp_publications.append(publication)
-            publication_list += _temp_publications
+        # Updating the whitelist publications
+        for publication in whitelist_publications:
+            self.save_publication_backup(publication)
 
-        # Filtering the publications by only those, who have one of the affiliation ids
-        relevant_publications = []
-        irrelevant_publications = []
-        for publication in publication_list:
-            relevant = False
-            for author in publication.authors:
-                if self.observed_author_model.contains(author) and \
-                        (self.kit_ids[0] in author.affiliations or self.kit_ids[1] in author.affiliations or
-                         self.kit_ids[2] in author.affiliations or self.kit_ids[3] in author.affiliations):
-                    relevant = True
-                    break
+    def new_publications(self):
+        # Getting all the publications from the backup database (which are the ones currently displayed on the website)
+        # and getting all the publications from the cache
+        cache_publications = self.all_publications_cache()
+        backup_publications = self.all_publication_backup()
 
-            if relevant:
-                relevant_publications.append(publication)
-            else:
-                irrelevant_publications.append(publication)
+        # Getting the publications, that are in the cache, but not in the backup, those are the new ones
+        subtraction_processor = PublicationSetSubtractionProcessor(cache_publications, backup_publications)
+        new_publications = subtraction_processor.difference
 
-        return relevant_publications, irrelevant_publications
+        return new_publications
 
-    # THE SCOPUS DATABASE REQUEST METHODS
+    ################################
+    # WORDPRESS CONTROLLER METHODS #
+    ################################
+
+    def post_publication(self, publication):
+        self.wordpress_controller.post_publication(publication)
+
+    def post_citation(self, publication_base, publication_list_cited):
+        # Getting the wordpress id for the given publication from the reference database
+        wordpress_id = self.get_wordpress_id(publication_base)
+        self.wordpress_controller.post_citation(wordpress_id, publication_list_cited)
+
+    #######################################
+    # THE SCOPUS DATABASE REQUEST METHODS #
+    #######################################
 
     def get_publication(self, scopus_id):
         """
@@ -972,7 +977,41 @@ class ScopusWpController:
     def get_affiliation(self, affiliation_id):
         return self.scopus_affiliation_controller.get_affiliation(affiliation_id)
 
-    # THE BACKUP DATABASE MODEL METHODS
+    ###########################
+    # THE CACHE MODEL METHODS #
+    ###########################
+
+    def cache_last_modify_time(self):
+        """
+        pass
+
+        :return: The timestamp of the time, the cache was last modified
+        """
+        timestamp = self.cache_model.get_modify_timestamp()
+        return timestamp
+
+    def cache_publications(self, publication_list):
+        """
+        Overwrites the cache file with the given publication list.
+
+        :param publication_list: The publications to be saved in the cache
+        :return: void
+        """
+        self.cache_model.save(publication_list)
+
+    def all_publications_cache(self):
+        """
+        Loads the Cache, which contains the publication list, that was fetched from scopus. Unfiltered all publications
+        of the observed authors.
+
+        :return: The list with all the publication objects from the cache
+        """
+        publication_list = self.cache_model.load()
+        return publication_list
+
+    #####################################
+    # THE BACKUP DATABASE MODEL METHODS #
+    #####################################
 
     def build_authors(self, author_list):
         """
@@ -1040,7 +1079,46 @@ class ScopusWpController:
     def save_publication_backup(self, publication):
         self.backup_model.insert_publication(publication)
 
-    # THE OBSERVED AUTHOR MODEL METHODS
+    def get_wordpress_id(self, publication):
+        """
+        Getting the wordpress id of the post for the given publication
+
+        :param publication: The Publication object, on which the post was based for which the wordpress id is
+            required
+        :return: The wordpress id
+        """
+        wordpress_id = self.wordpress_reference_model.get_wordpress_id(publication)
+        return wordpress_id
+
+    def save_reference(self, publication, wordpress_id):
+        """
+        Saves a new entry in the reference database, that connects the scopus id of the given publication with the
+        given wordpress id
+
+        :param publication: The Publication object, which was posted and now be connected with the wordpress id of
+            the Post it is in
+        :param wordpress_id: The wordpress id of the post of the publication
+        :return: void
+        """
+        scopus_id = int(publication)
+        self.wordpress_reference_model.insert_reference(scopus_id, wordpress_id)
+
+    #####################################
+    # THE OBSERVED AUTHOR MODEL METHODS #
+    #####################################
+
+    def filter_publications(self, publication_list):
+        """
+        Filters the publications by checking for the observed authors, that contributed if there is a observed author,
+        whose affiliations match the whitelist, the publication gets taken. If there is no whitelist match but a
+        blacklist match, the publication gets sorted in the second list.
+        For all publications, that neither match white nor blacklist, they get sorted into the third,
+        "remaining" list.
+
+        :param publication_list: The publications to be sorted by the observed authors
+        :return: whitelisted publications, black listed publications, remaining publication list
+        """
+        return self.observed_author_model.filter(publication_list)
 
     def get_observed_authors(self, categories=None):
         """

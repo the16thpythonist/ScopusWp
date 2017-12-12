@@ -2,10 +2,12 @@ import os
 import configparser
 import logging
 
-from ScopusWp.repr import Author, Publication, AuthorProfile
+from ScopusWp.repr import Author, Publication, AuthorProfile, AuthorObservation
 
 from ScopusWp.config import Config, SQL_LOGGING_EXTENSION
 
+import pathlib
+import pickle
 import _mysql, MySQLdb
 import json
 
@@ -14,7 +16,135 @@ import json
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 
+class CacheModel:
+
+    def __init__(self):
+        self.path_string = '{}/cache.pickle'.format(PATH)
+        self.path_object = pathlib.Path(self.path_string)
+
+    def load(self):
+        with self.path_object.open(mode='rb') as file:
+            return pickle.load(file)
+
+    def save(self, publication_list):
+        with self.path_object.open(mode='wb+') as file:
+            return pickle.dump(publication_list, file)
+
+    def get_modify_timestamp(self):
+        return self.path_object.stat().st_mtime
+
+
 class ObservedAuthorsModel:
+
+    def __init__(self):
+        self.path = os.path.join(PATH, 'authors2.ini')
+
+        self.source = configparser.ConfigParser()
+        self.source.read(self.path)
+
+        self.author_observations = []
+        self.author_ids = []
+
+        self.author_observation_dict = {}
+        # TODO: eventually dict struture for categories and ids to observ. objects
+
+        for key in self.source.keys():
+            if key == 'DEFAULT':
+                continue
+            # Each key represents one observed author
+            value_dict = dict(self.source[key])
+
+            author_observation = self._get_author_observation(value_dict)
+            author_id_list = author_observation.ids
+            self.author_ids += author_id_list
+            self.author_observations.append(author_observation)
+            for author_id in author_id_list:
+                self.author_observation_dict[author_id] = author_observation
+
+    def filter(self, publication_list):
+        whitelist_publications = []
+        blacklist_publications = []
+        remaining_publications = []
+
+        for publication in publication_list:
+            _is_blacklist = False
+            _is_whitelist = False
+            # Checking the affiliations for all the authors
+            for author in publication.authors:
+                author_id = int(author.id)
+                if author_id in self.author_ids:
+                    author_observation = self.author_observation_dict[author_id]
+                    _is_whitelist = author_observation.check_whitelist(author.affiliations)
+                    # If there was a blacklist found it would be overwritten with the next author, like this a TRUE
+                    # will be preserved until the end of the loop
+                    if not _is_blacklist:
+                        _is_blacklist = author_observation.check_blacklist(author.affiliations)
+
+                    # In the case of whitelist, the publication will be added instantly, but for blacklist it is
+                    # decided after all authors have been iterated
+                    if _is_whitelist:
+                        whitelist_publications.append(publication)
+                        break
+
+            if _is_blacklist:
+                blacklist_publications.append(publication)
+            else:
+                remaining_publications.append(publication)
+
+        return whitelist_publications, blacklist_publications, remaining_publications
+
+    def get_observed_authors(self):
+        return self.author_ids
+
+    def _get_author_observation(self, value_dict):
+        (
+            first_name,
+            last_name,
+            author_id_list,
+            keyword_list,
+            scopus_whitelist,
+            scopus_blacklist
+        ) = self._extract_value_dict(value_dict)
+
+        # Creating a new AuthorObservation object
+        author_observation = AuthorObservation(
+            author_id_list,
+            first_name,
+            last_name,
+            keyword_list,
+            scopus_whitelist,
+            scopus_blacklist
+        )
+
+        return author_observation
+
+    def _extract_value_dict(self, value_dict):
+        first_name = value_dict['first_name']
+        last_name = value_dict['last_name']
+
+        author_ids_json = value_dict['ids']
+        author_id_list = json.loads(author_ids_json)
+
+        scopus_whitelist_json = value_dict['scopus_whitelist']
+        scopus_whitelist = json.loads(scopus_whitelist_json)
+
+        scopus_blacklist_json = value_dict['scopus_blacklist']
+        scopus_blacklist = json.loads(scopus_blacklist_json)
+
+        keyword_list_json = value_dict['keywords']
+        keyword_list = json.loads(keyword_list_json)
+
+        return first_name, last_name, author_id_list, keyword_list, scopus_whitelist, scopus_blacklist
+
+    def __contains__(self, item):
+        if isinstance(item, Author) or isinstance(item, AuthorProfile):
+            return int(item.id) in self.author_ids
+
+        elif isinstance(item, str) or isinstance(item, int):
+            return int(item)in self.author_ids
+
+
+class ObservedAuthorsModel2:
 
     def __init__(self):
         self.path = os.path.join(PATH, 'authors.ini')
@@ -139,6 +269,74 @@ class Db:
         return Db._instance
 
 
+class WordpressReferenceModel:
+
+    def __init__(self):
+        self.database = Db.get_instance()
+        self.cursor = self.database.cursor()
+
+        self.logger = logging.getLogger(SQL_LOGGING_EXTENSION)
+
+    def insert_reference(self, scopus_id, wordpress_id):
+        sql = (
+            'INSERT IGNORE INTO reference ('
+            'scopus_id, '
+            'wordpress_id) '
+            'VALUES ('
+            '{scopus_id}, '
+            '{wordpress_id})'
+        ).format(
+            scopus_id=scopus_id,
+            wordpress_id=wordpress_id
+        )
+
+        self.cursor.execute(sql)
+
+    def get_wordpress_id(self, publication):
+        scopus_id = int(publication)
+
+        # Generating the SQL Code to be executed in the database
+        sql = (
+            'SELECT '
+            'wordpress_id '
+            'FROM reference '
+            'WHERE scopus_id = {scopus_id}'
+        ).format(
+            scopus_id=scopus_id
+        )
+
+        self.cursor.execute(sql)
+
+        result = self.cursor.fetchone()
+        if len(result) == 1:
+            wordpress_id = int(result[0])
+            return wordpress_id
+        elif len(result) == 0:
+            raise KeyError('There is no "reference" entry for the scopus id "{}"'.format(scopus_id))
+
+    def get_kit_id(self, publication):
+        scopus_id = int(publication)
+
+        # Generating the SQL Code to be executed in the database
+        sql = (
+            'SELECT '
+            'kit_id '
+            'FROM reference '
+            'WHERE scopus_id = {scopus_id}'
+        ).format(
+            scopus_id=scopus_id
+        )
+
+        self.cursor.execute(sql)
+
+        result = self.cursor.fetchone()
+        if len(result) == 1:
+            wordpress_id = int(result[0])
+            return wordpress_id
+        elif len(result) == 0:
+            raise KeyError('There is no "reference" entry for the scopus id "{}"'.format(scopus_id))
+
+
 class ScopusBackupModel:
 
     def __init__(self):
@@ -221,8 +419,6 @@ class ScopusBackupModel:
         ).format(
             id=author_id
         )
-
-        print(sql)
 
         self.cursor.execute(sql)
         result = self.cursor.fetchall()

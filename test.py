@@ -7,6 +7,11 @@ from ScopusWp.controllers import ScopusPublicationController, ScopusAuthorContro
 from pprint import pprint
 
 import json
+import pickle
+
+from ScopusWp.config import PATH
+
+from ScopusWp.views import PublicationTableView
 
 import warnings
 
@@ -114,6 +119,14 @@ def test_affil_table():
     controller.print_author_affiliations(authors, publications)
 
 
+def test_cache():
+    controller = ScopusWpController()
+    publications = controller.all_publication_backup()
+
+    with open('{}/{}'.format(PATH, 'cache.pickle'), 'wb') as file:
+        pickle.dump(publications, file)
+
+
 def build_all():
     controller = ScopusWpController()
     author_list = controller.get_observed_authors()
@@ -130,4 +143,37 @@ def build_all():
 
     controller.build_publications(publication_list)
 
-test_affil_table()
+
+def test_observed():
+    from ScopusWp.models import ObservedAuthorsModel
+    from ScopusWp.views import PublicationTableView
+
+    controller = ScopusWpController()
+    model = ObservedAuthorsModel()
+
+    publications = controller.all_publication_backup()
+    (
+        w,
+        b,
+        r
+    ) = model.filter(publications)
+
+    v1 = PublicationTableView(w)
+    print(v1.get_string())
+    v2 = PublicationTableView(b)
+    print(v2.get_string())
+    v3 = PublicationTableView(r)
+    print(v3.get_string())
+
+def test_new_publications():
+    controller = ScopusWpController()
+    pubs = controller.new_publications()
+
+    view = PublicationTableView(pubs)
+    print(view.get_string())
+
+    controller.update_publications_wordpress()
+    controller.close()
+
+
+test_new_publications()

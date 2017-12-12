@@ -296,10 +296,9 @@ class PublicationWordpressCitationView:
 
 class PublicationWordpressPostView:
 
-    def __init__(self, publication, author_list):
+    def __init__(self, publication):
 
         self.publication = publication
-        self.authors = author_list
 
     def get_title(self):
         # Encoding the title in utf 8
@@ -368,14 +367,14 @@ class PublicationWordpressPostView:
         return self.publication.keywords
 
     def _get_authors_string(self, max_amount):
-        first_author_string = self.authors[0].index_name
+        first_author_string = self.publication.authors[0].index_name
         authors_string_list = [first_author_string]
 
-        author_count = len(self.authors)
+        author_count = len(self.publication.authors)
         if author_count < max_amount:
             # Adding all the author names to one long string
             for index in range(1, author_count):
-                author_string = ', {}'.format(self.authors[index].index_name)
+                author_string = ', {}'.format(self.publication.authors[index].index_name)
                 authors_string_list.append(author_string)
 
         else:

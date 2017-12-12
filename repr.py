@@ -47,6 +47,15 @@ class Publication:
         # Todo: method, that really compares all
         raise NotImplementedError()
 
+    def __int__(self):
+        """
+        This magic method for when the int() conversion operator is being called on a publication.
+        In this case the int scopus id of the publication is being returned.
+
+        :return: The int scopus id
+        """
+        return int(self.id)
+
 
 class Author:
 
@@ -101,6 +110,35 @@ class AuthorProfile:
         self.country = affiliation_country
         self.city = affiliation_city
         self.institute = affiliation_name
+
+
+class AuthorObservation:
+
+    def __init__(self, author_id_list, first_name, last_name, keyword_list, whitelist, blacklist):
+        self.ids = author_id_list
+        self.first_name = first_name
+        self.last_name = last_name
+        self.keywords = keyword_list
+        self.whitelist = whitelist
+        self.blacklist = blacklist
+
+    def check_whitelist(self, affiliation_id_list):
+        for affiliation_id in affiliation_id_list:
+            if self.in_whitelist(affiliation_id):
+                return True
+        return False
+
+    def in_whitelist(self, affiliation_id):
+        return int(affiliation_id) in self.whitelist
+
+    def check_blacklist(self, affiliation_id_list):
+        for affiliation_id in affiliation_id_list:
+            if self.in_blacklist(affiliation_id):
+                return True
+        return False
+
+    def in_blacklist(self, affiliation_id):
+        return int(affiliation_id) in self.blacklist
 
 
 class Affiliation:
