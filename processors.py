@@ -1,5 +1,6 @@
 from ScopusWp.repr import Publication, AuthorObservation
 from ScopusWp.models import ObservedAuthorsModel
+from ScopusWp.controllers import ScopusPublicationController
 
 
 class PublicationSetSubtractionProcessor:
@@ -83,9 +84,12 @@ class PostKeywordProcessor:
 
 class PublicationCitationDifferenceProcessor:
 
-    def __init__(self, publication_list1, publication_list2):
+    def __init__(self, publication_list1, publication_list2, scopus_controller):
         self.publications_first = publication_list1  # type: list[Publication]
         self.publications_second = publication_list2  # type: list[Publication]
+        self.scopus_controller = scopus_controller  # type: ScopusPublicationController
+
+        self.difference_dict = self.get_difference_dict()
 
     def get_difference_dict(self):
 
@@ -101,3 +105,23 @@ class PublicationCitationDifferenceProcessor:
                     citation_difference_dict[int(publication1)] = citations_difference
 
         return citation_difference_dict
+
+    def __getitem__(self, item):
+        """
+        When indexing the object with a Publication, this method returns a list of Publication objects for the
+        citations, that were the difference.
+        Does so by getting the scopus ids of those citations from the internal dict saving the difference scopus ids
+        for every publication in the original first set and then calls the scopus controller to request all the
+        publication objects.
+
+        :param item: The publication for which to get the difference in citations
+        :return: The list of publications for the citations of the given publication
+        """
+        scopus_id_list = self.difference_dict[int(item)]
+        citation_list = []
+        for scopus_id in scopus_id_list:
+            publication = self.scopus_controller.get_publication(scopus_id)
+            citation_list.append(publication)
+
+        return citation_list
+

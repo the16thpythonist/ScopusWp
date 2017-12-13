@@ -911,7 +911,11 @@ class ScopusWpController:
         # self.print_affiliations_info(affiliation_list)
 
     def new_citations(self):
-        pass
+        cache_publications = self.all_publications_cache()
+        backup_publications = self.all_publication_backup()
+
+        # Getting the difference in citations
+
 
     def update_publications_wordpress(self):
         # Getting the new publications
