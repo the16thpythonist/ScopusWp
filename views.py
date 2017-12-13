@@ -299,9 +299,9 @@ class PublicationWordpressCitationView:
 
 class PublicationWordpressPostView:
 
-    def __init__(self, publication):
-
-        self.publication = publication
+    def __init__(self, publication, keyword_list):
+        self.keywords = keyword_list  # type: list(str)
+        self.publication = publication  # type: Publication
 
     def get_title(self):
         # Encoding the title in utf 8
@@ -363,8 +363,7 @@ class PublicationWordpressPostView:
         return content_string
 
     def get_category_list(self):
-        # TODO: implement the category list function
-        return ['Publication', 'algorithms']
+        return self.keywords
 
     def get_tag_list(self):
         tag_list = self.publication.keywords

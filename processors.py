@@ -56,13 +56,21 @@ class PostKeywordProcessor:
         self.publication = publication  # type: Publication
 
     def get_keywords(self):
+        """
+        Builds a list of all the keywords, that have been given to the observed authors, that have contributed
+        to the publication given to the processor.
+        Does this by looping through all the authors of the publication, checking if its an observed auhtor and
+        adding his keywords to the total list, if they are not already part of rhe list.
+
+        :return: The list of string keywords
+        """
         keywords = []
         # Looping through the publications authors and checking if observed author. for observed author getting
         # the keywords and adding them, if not already in the list
         for author in self.publication.authors:
             if author in self.observed_authors_model:
                 author_id = int(author)
-                author_observation = self.observed_authors_model.author_observation_dict[author_id]  # type: AuthorObservation
+                author_observation = self.observed_authors_model.author_observation_dict[author_id]
                 author_keyword_list = author_observation.keywords
 
                 # Adding the keywords to the total list, if they are not already in there #
