@@ -1,5 +1,4 @@
-from ScopusWp.repr import Publication
-
+from ScopusWp.repr import Publication, AuthorObservation
 from ScopusWp.models import ObservedAuthorsModel
 
 
@@ -57,10 +56,18 @@ class PostKeywordProcessor:
         self.publication = publication  # type: Publication
 
     def get_keywords(self):
+        keywords = []
         # Looping through the publications authors and checking if observed author. for observed author getting
         # the keywords and adding them, if not already in the list
         for author in self.publication.authors:
             if author in self.observed_authors_model:
+                author_id = int(author)
+                author_observation = self.observed_authors_model.author_observation_dict[author_id]  # type: AuthorObservation
+                author_keyword_list = author_observation.keywords
 
-                self.observed_authors_model.author_observation_dict[]
+                # Adding the keywords to the total list, if they are not already in there #
+                difference = list(set(author_keyword_list) - set(keywords))
+                keywords += difference
 
+        # Returning the keywords list
+        return keywords
