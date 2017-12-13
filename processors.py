@@ -1,5 +1,7 @@
 from ScopusWp.repr import Publication
 
+from ScopusWp.models import ObservedAuthorsModel
+
 
 class PublicationSetSubtractionProcessor:
 
@@ -46,3 +48,19 @@ class PublicationSetSubtractionProcessor:
                 difference.append(publication1)
 
         return common, difference
+
+
+class PostKeywordProcessor:
+
+    def __init__(self, publication, observed_authors_model):
+        self.observed_authors_model = observed_authors_model  # type: ObservedAuthorsModel
+        self.publication = publication  # type: Publication
+
+    def get_keywords(self):
+        # Looping through the publications authors and checking if observed author. for observed author getting
+        # the keywords and adding them, if not already in the list
+        for author in self.publication.authors:
+            if author in self.observed_authors_model:
+
+                self.observed_authors_model.author_observation_dict[]
+

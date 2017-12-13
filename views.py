@@ -170,6 +170,9 @@ class PublicationTableView:
         table_string = tabulate.tabulate(table_list, tablefmt='fancy_grid')
         return table_string
 
+    def __str__(self):
+        return self.get_string()
+
     def _get_row_list(self, publication):
         """
         Gets the a ordered list of items (scopus id, title , doi, eid, authors, affiliations) that will be used as a
@@ -364,7 +367,10 @@ class PublicationWordpressPostView:
         return ['Publication', 'algorithms']
 
     def get_tag_list(self):
-        return self.publication.keywords
+        tag_list = self.publication.keywords
+        if '' in tag_list:
+            tag_list.remove('')
+        return tag_list
 
     def _get_authors_string(self, max_amount):
         first_author_string = self.publication.authors[0].index_name

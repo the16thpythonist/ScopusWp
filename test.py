@@ -165,12 +165,11 @@ def test_observed():
     v3 = PublicationTableView(r)
     print(v3.get_string())
 
+
 def test_new_publications():
     controller = ScopusWpController()
     pubs = controller.new_publications()
 
-    view = PublicationTableView(pubs)
-    print(view.get_string())
 
     controller.update_publications_wordpress()
     controller.close()
