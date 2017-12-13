@@ -137,11 +137,7 @@ class ObservedAuthorsModel:
         return first_name, last_name, author_id_list, keyword_list, scopus_whitelist, scopus_blacklist
 
     def __contains__(self, item):
-        if isinstance(item, Author) or isinstance(item, AuthorProfile):
-            return int(item.id) in self.author_ids
-
-        elif isinstance(item, str) or isinstance(item, int):
-            return int(item)in self.author_ids
+        return int(item) in self.author_ids
 
 
 class ObservedAuthorsModel2:
