@@ -15,7 +15,7 @@ from ScopusWp.repr import Affiliation
 
 from ScopusWp.models import ObservedAuthorsModel, ScopusBackupModel, CacheModel, WordpressReferenceModel
 
-from ScopusWp.processors import PublicationSetSubtractionProcessor
+from ScopusWp.processors import PublicationSetSubtractionProcessor, PostKeywordProcessor
 
 from ScopusWp.views import PublicationWordpressPostView, PublicationWordpressCitationView
 from ScopusWp.views import AuthorSimpleView, AffiliationSimpleView, PublicationSimpleView
@@ -773,9 +773,9 @@ class WordpressController:
         # Creating the client object from the login data
         self.client = Client(self.url, self.username, self.password)
 
-    def post_publication(self, publication):
+    def post_publication(self, publication, keywords):
         # Creating the view specifically for the wordpress posts
-        wp_post_view = PublicationWordpressPostView(publication)
+        wp_post_view = PublicationWordpressPostView(publication, keywords)
 
         post = WordPressPost()
 
@@ -944,7 +944,20 @@ class ScopusWpController:
     ################################
 
     def post_publication(self, publication):
-        return self.wordpress_controller.post_publication(publication)
+        """
+        Actually posts the given üpublication to the connected wordpress site.
+        (Assembles the keywords list from the keywords given to the observed authors)
+
+        :param publication: The publication to be posted as a post
+        :return: The int wordpress id of the resulting post
+        """
+        # Creating the keywords list from the observed authors model and the publication
+        post_keyword_processor = PostKeywordProcessor(publication, self.observed_author_model)
+        keywords = post_keyword_processor.get_keywords()
+
+        # Posting the publication post to the connected wordpress site and returning the wordpress id of the post
+        wordpress_id = self.wordpress_controller.post_publication(publication, keywords)
+        return wordpress_id
 
     def post_citation(self, publication_base, publication_list_cited):
         # Getting the wordpress id for the given publication from the reference database
