@@ -137,7 +137,25 @@ class ObservedAuthorsModel:
         return first_name, last_name, author_id_list, keyword_list, scopus_whitelist, scopus_blacklist
 
     def __contains__(self, item):
+        """
+        The magic method for the 'xx in xx' Operator. If given an Author / AuthorProfile object or a author id string
+        or int, checks and returns whether that author described by the author id is in the set of observed author ids
+
+        :param item: Author/AuthorProfile/string/int anything that describes an author
+        :return: The boolean value of whether or not that author is with the observed authors
+        """
         return int(item) in self.author_ids
+
+    def __getitem__(self, item):
+        """
+        Returns the AuthorObservation object for the given author
+
+        :param item: Author/AuthorProfile/string/int anything that describes an author
+        :return: The AuthorObservation object for the given author
+        """
+        # Works with the author id given directly as string/int and with the Author/AuthorProfile objects
+        author_id = int(item)
+        return self.author_observation_dict[author_id]  # type: AuthorObservation
 
 
 class ObservedAuthorsModel2:
