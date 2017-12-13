@@ -172,4 +172,10 @@ def test_new_publications():
     controller.close()
 
 
+def test_new_citations():
+    controller = ScopusWpController()
+    controller.update_citations_wordpress()
+    controller.close()
+
+
 test_new_publications()

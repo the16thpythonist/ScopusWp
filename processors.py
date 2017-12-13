@@ -1,6 +1,5 @@
 from ScopusWp.repr import Publication, AuthorObservation
 from ScopusWp.models import ObservedAuthorsModel
-from ScopusWp.controllers import ScopusPublicationController
 
 
 class PublicationSetSubtractionProcessor:

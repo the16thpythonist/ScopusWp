@@ -274,7 +274,9 @@ class PublicationWordpressCitationView:
         doi_string = self.publication.doi
 
         date_tuple = self.get_date()
-        year_string = str(date_tuple.tm_year)
+        year_string = ''
+        if not (date_tuple is None):
+            year_string = str(date_tuple.tm_year)
 
         content_string = (
             u'{author} et al.: '
@@ -293,14 +295,17 @@ class PublicationWordpressCitationView:
 
     def get_date(self):
         date_string = self.publication.date
-        date_tuple = datetime.datetime.strptime(date_string, '%Y-%m-%d').timetuple()
+        if len(date_string) != 0:
+            date_tuple = datetime.datetime.strptime(date_string, '%Y-%m-%d').timetuple()
+        else:
+            return None
         return date_tuple
 
 
 class PublicationWordpressPostView:
 
     def __init__(self, publication, keyword_list):
-        self.keywords = keyword_list  # type: list(str)
+        self.keywords = keyword_list  # type: list[str]
         self.publication = publication  # type: Publication
 
     def get_title(self):
@@ -343,7 +348,9 @@ class PublicationWordpressPostView:
         doi_string = self.publication.doi
 
         date_tuple = self.get_date()
-        year_string = str(date_tuple.tm_year)
+        year_string = ''
+        if not(date_tuple is None):
+            year_string = str(date_tuple.tm_year)
 
         content_string = (
             u'<p>{authors}</p>'

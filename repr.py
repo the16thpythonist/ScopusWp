@@ -67,7 +67,10 @@ class Author:
 
     @property
     def index_name(self):
-        index_name = '{} {}.'.format(self.last_name, self.first_name[0].upper())
+        if len(self.first_name) > 0:
+            index_name = '{} {}.'.format(self.last_name, self.first_name[0].upper())
+        else:
+            index_name = '{}'.format(self.last_name)
         return index_name
 
     def to_dict(self):

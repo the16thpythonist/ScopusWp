@@ -16,6 +16,7 @@ from ScopusWp.repr import Affiliation
 from ScopusWp.models import ObservedAuthorsModel, ScopusBackupModel, CacheModel, WordpressReferenceModel
 
 from ScopusWp.processors import PublicationSetSubtractionProcessor, PostKeywordProcessor
+from ScopusWp.processors import PublicationCitationDifferenceProcessor
 
 from ScopusWp.views import PublicationWordpressPostView, PublicationWordpressCitationView
 from ScopusWp.views import AuthorSimpleView, AffiliationSimpleView, PublicationSimpleView
@@ -589,7 +590,7 @@ class ScopusPublicationController(ScopusController):
         doi = self._get_dict_item(coredata_dict, 'prism:doi', '')
         journal = self._get_dict_item(coredata_dict, 'prism:publicationName', '')
         volume = self._get_dict_item(coredata_dict, 'prism:volume', '')
-        date = self._get_dict_item(coredata_dict, 'prism:coverDate', '0-0-0')
+        date = self._get_dict_item(coredata_dict, 'prism:coverDate', '')
 
         # Fixed an issue where all tough I am working with the det dict item, that checks and has default value I then
         # just assumed, that there must be a first list item in the creator entry list
@@ -678,7 +679,7 @@ class ScopusPublicationController(ScopusController):
         # Getting the coredata dict from the response dict
         coredata_dict = self._get_dict_item(response_dict, 'coredata', {})
 
-        # Getting the list of author entry dicts from the reponse dict
+        # Getting the list of author entry dicts from the response dict
         author_dict = self._get_dict_item(response_dict, 'authors', {})
         author_entry_list = self._get_dict_item(author_dict, 'author', [])
 
@@ -740,7 +741,11 @@ class ScopusPublicationController(ScopusController):
         :return: The value of the dict
         """
         if isinstance(dictionary, dict) and key in dictionary.keys():
-            return dictionary[key]
+            value = dictionary[key]
+            if value is None:
+                return default
+            else:
+                return dictionary[key]
         elif isinstance(dictionary, list) and key < len(dictionary):
             return dictionary[key]
         else:
@@ -827,8 +832,10 @@ class WordpressController:
 
             comment_id = self.client.call(NewComment(wordpress_id, comment))
 
-            # Changing the date of the comment
-            comment.date_created = wp_comment_view.get_date()
+            # Changing the date of the comment, but only if there is a data specified for the publication
+            date_created = wp_comment_view.get_date()
+            if date_created is not None:
+                comment.date_created = date_created
             self.client.call(EditComment(comment_id, comment))
 
             if not multiple:
@@ -910,12 +917,20 @@ class ScopusWpController:
 
         # self.print_affiliations_info(affiliation_list)
 
-    def new_citations(self):
+    def update_citations_wordpress(self):
         cache_publications = self.all_publications_cache()
         backup_publications = self.all_publication_backup()
 
         # Getting the difference in citations
+        citation_difference_processor = PublicationCitationDifferenceProcessor(
+            backup_publications,
+            cache_publications,
+            self.scopus_publication_controller
+        )
 
+        for publication in backup_publications:
+            citation_publications = citation_difference_processor[publication]
+            self.post_citation(publication, citation_publications)
 
     def update_publications_wordpress(self):
         # Getting the new publications
@@ -933,6 +948,14 @@ class ScopusWpController:
             self.save_publication_backup(publication)
             wordpress_id = self.post_publication(publication)
             self.save_reference(publication, wordpress_id)
+
+            citation_list = []
+            for scopus_id in publication.citations:
+                citation_publication = self.scopus_publication_controller.get_publication(scopus_id) # type: Publication
+                if citation_publication.title != '':
+                    citation_list.append(citation_publication)
+
+            self.post_citation(publication, citation_list)
 
     def new_publications(self):
         # Getting all the publications from the backup database (which are the ones currently displayed on the website)
