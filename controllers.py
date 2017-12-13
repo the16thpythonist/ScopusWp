@@ -20,8 +20,7 @@ from ScopusWp.processors import PublicationSetSubtractionProcessor
 from ScopusWp.views import PublicationWordpressPostView, PublicationWordpressCitationView
 from ScopusWp.views import AuthorSimpleView, AffiliationSimpleView, PublicationSimpleView
 from ScopusWp.views import AuthorsAffiliationsView, AffiliationTableView
-
-from xml.etree.ElementTree import Element, SubElement
+from ScopusWp.views import PublicationTableView
 
 import logging
 import urllib.parse as urlparse
@@ -871,7 +870,7 @@ class ScopusWpController:
         self.scopus_author_controller = ScopusAuthorController()
         self.scopus_affiliation_controller = ScopusAffiliationController()
         # Creating the wordpress controller
-        self.wordpress_controller = None  # WordpressController()
+        self.wordpress_controller = WordpressController()
 
         self.observed_author_model = ObservedAuthorsModel()
         self.cache_model = CacheModel()
@@ -925,6 +924,8 @@ class ScopusWpController:
         # Updating the whitelist publications
         for publication in whitelist_publications:
             self.save_publication_backup(publication)
+            wordpress_id = self.post_publication(publication)
+            self.save_reference(publication, wordpress_id)
 
     def new_publications(self):
         # Getting all the publications from the backup database (which are the ones currently displayed on the website)
@@ -943,7 +944,7 @@ class ScopusWpController:
     ################################
 
     def post_publication(self, publication):
-        self.wordpress_controller.post_publication(publication)
+        return self.wordpress_controller.post_publication(publication)
 
     def post_citation(self, publication_base, publication_list_cited):
         # Getting the wordpress id for the given publication from the reference database

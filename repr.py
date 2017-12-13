@@ -89,6 +89,15 @@ class Author:
 
         return Author(author_id, first_name, last_name, affiliations)
 
+    def __int__(self):
+        """
+        This method is called when the int conversion operator is used on the Auhtor obeject.
+        Returns the int author id of the Author.
+
+        :return: The int author id
+        """
+        return int(self.id)
+
 
 class AuthorProfile:
 
@@ -110,6 +119,15 @@ class AuthorProfile:
         self.country = affiliation_country
         self.city = affiliation_city
         self.institute = affiliation_name
+
+    def __int__(self):
+        """
+        This method will be called, when the int conversion operator is called on the AuhtorProfile object.
+        The int author id of the author will be returned.
+
+        :return: The in author id of the author
+        """
+        return int(self.id)
 
 
 class AuthorObservation:
