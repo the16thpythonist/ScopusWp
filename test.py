@@ -168,9 +168,6 @@ def test_observed():
 
 def test_new_publications():
     controller = ScopusWpController()
-    pubs = controller.new_publications()
-
-
     controller.update_publications_wordpress()
     controller.close()
 

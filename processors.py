@@ -79,3 +79,25 @@ class PostKeywordProcessor:
 
         # Returning the keywords list
         return keywords
+
+
+class PublicationCitationDifferenceProcessor:
+
+    def __init__(self, publication_list1, publication_list2):
+        self.publications_first = publication_list1  # type: list[Publication]
+        self.publications_second = publication_list2  # type: list[Publication]
+
+    def get_difference_dict(self):
+
+        citation_difference_dict = {}
+
+        for publication1 in self.publications_first:
+            # Searching the same publication in the second set and if there is one in there getting all the citations
+            # that are in the second publication but not in the first
+            for publication2 in self.publications_second:
+                if int(publication1) == int(publication2):
+                    # Adding the list of citations as value to the dict
+                    citations_difference = list(set(publication2.citations) - set(publication1.citations))
+                    citation_difference_dict[int(publication1)] = citations_difference
+
+        return citation_difference_dict

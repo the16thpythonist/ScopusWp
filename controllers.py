@@ -910,6 +910,9 @@ class ScopusWpController:
 
         # self.print_affiliations_info(affiliation_list)
 
+    def new_citations(self):
+        pass
+
     def update_publications_wordpress(self):
         # Getting the new publications
         new_publications = self.new_publications()
