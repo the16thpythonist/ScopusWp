@@ -103,7 +103,15 @@ class ScopusPublication(ScopusIdentifierInterface):
 
 
 class ScopusAuthor(ScopusIdentifierInterface):
+    """
+    The representation of the Author data saved with a publication, that was retrieved from the scopus database.
 
+    This Author representation only contains very basic information such as the scopus author id, the first name, the
+    last name and the list of affiliations. Objects of this kind will only be created from the data of a publication
+    retrieval.
+    The data for a author varies greatly in the scopus database and one cannot assume to get legitimate information
+    from a author retrieval.
+    """
     def __init__(self, first_name, last_name, id, affiliation_list):
         # Init the interface
         ScopusIdentifierInterface.__init__(self)
@@ -115,12 +123,28 @@ class ScopusAuthor(ScopusIdentifierInterface):
         self.affiliations = affiliation_list
 
     def get_id(self):
+        """
+        Returns the int author id of the author.
+
+        :return: int
+        """
         return int(self.id)
 
     def __int__(self):
+        """
+        Function to convert an object into an integer. Returns the int author id of the author.
+
+        :return: int
+        """
         return self.get_id()
 
     def contains_affiliation(self, affiliation_id):
+        """
+        Whether the author is affiliated with the given affiliation id.
+
+        :param affiliation_id: The int affiliation id to check for
+        :return:
+        """
         return int(affiliation_id) in self.affiliations
 
 
