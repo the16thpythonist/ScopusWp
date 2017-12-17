@@ -148,4 +148,30 @@ class ScopusAuthor(ScopusIdentifierInterface):
         return int(affiliation_id) in self.affiliations
 
 
+class ScopusAuthorProfile(ScopusIdentifierInterface):
+
+    def __init__(self, author_id, first_name, last_name, h_index, citation_count, document_count, publication_list):
+        # Init the reference
+        ScopusIdentifierInterface.__init__(self)
+
+        self.id = author_id
+        self.first_name = first_name
+        self.last_name = last_name
+        self.h_index = h_index
+        self.citation_count = citation_count
+        self.document_count = document_count
+        self.publications = publication_list
+
+    def get_id(self):
+        return int(self.id)
+
+    def __int__(self):
+        return self.get_id()
+
+    def contains_publication(self, scopus_publication):
+        for scopus_id in self.publications:
+            if scopus_id == int(scopus_publication):
+                return True
+
+        return False
 
