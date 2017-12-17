@@ -149,7 +149,9 @@ class ScopusAuthor(ScopusIdentifierInterface):
 
 
 class ScopusAuthorProfile(ScopusIdentifierInterface):
-
+    """
+    Represents the basic data structure from a scopus author retrieval.
+    """
     def __init__(self, author_id, first_name, last_name, h_index, citation_count, document_count, publication_list):
         # Init the reference
         ScopusIdentifierInterface.__init__(self)
@@ -163,12 +165,28 @@ class ScopusAuthorProfile(ScopusIdentifierInterface):
         self.publications = publication_list
 
     def get_id(self):
+        """
+        Returns the int author id of the author.
+
+        :return: int
+        """
         return int(self.id)
 
     def __int__(self):
+        """
+        Method to convert an object to int. Returns the int author id of the author.
+
+        :return: int
+        """
         return self.get_id()
 
     def contains_publication(self, scopus_publication):
+        """
+        whether or not the author has contributed to the given publication.
+
+        :param scopus_publication: The ScopusPublication object to check for contribution of the author
+        :return: boolean
+        """
         for scopus_id in self.publications:
             if scopus_id == int(scopus_publication):
                 return True
