@@ -1,10 +1,23 @@
+class ScopusIdentifierInterface:
+    """
+    Interface, that promises, that when implemented the identifier of an object (id) can be acquired by calling an
+    integer conversion on the object, or calling the 'get_id' method.
+    """
+    def get_id(self):
+        raise NotImplementedError()
 
-class ScopusPublication:
+    def __int__(self):
+        raise NotImplementedError()
+
+
+class ScopusPublication(ScopusIdentifierInterface):
     """
     Object, that represents a publication, that was retrieved from the Scopus database.
     """
     def __init__(self, scopus_id, eid, doi, title, description, date, creator, author_list, citation_list,
                  keyword_list, journal, volume):
+        # Init the interfaces
+        ScopusIdentifierInterface.__int__(self)
 
         self.id = scopus_id
         self.eid = eid
@@ -34,13 +47,21 @@ class ScopusPublication:
 
         return affiliation_list
 
+    def get_id(self):
+        """
+        Returns the int scopus id of the publication.
+
+        :return: int id
+        """
+        return int(self.id)
+
     def __int__(self):
         """
         Function to convert the object into an integer type. Returns the in scopus id, that identifies the publication.
 
         :return:The integer scopus id of the publication
         """
-        return int(self.id)
+        return self.get_id()
 
     def contains_author(self, scopus_author):
         """
@@ -79,3 +100,28 @@ class ScopusPublication:
         :return: boolean
         """
         return affiliation_id in self.affiliations
+
+
+class ScopusAuthor(ScopusIdentifierInterface):
+
+    def __init__(self, first_name, last_name, id, affiliation_list):
+        # Init the interface
+        ScopusIdentifierInterface.__init__(self)
+
+        self.id = id
+        self.first_name = first_name
+        self.last_name = last_name
+        self.id = id
+        self.affiliations = affiliation_list
+
+    def get_id(self):
+        return int(self.id)
+
+    def __int__(self):
+        return self.get_id()
+
+    def contains_affiliation(self, affiliation_id):
+        return int(affiliation_id) in self.affiliations
+
+
+
