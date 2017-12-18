@@ -132,4 +132,18 @@ def test_scopus_author_observation_whitelist_check_publication(scopus_author_obs
     assert scopus_author_observation.whitelist_check_publication(scopus_publication)
 
 
+def test_scopus_author_observation_blacklist_contains(scopus_author_observation_sample):
+    scopus_author_observation = scopus_author_observation_sample  # type: ScopusAuthorObservation
+    assert scopus_author_observation.blacklist_contains(12)
+    assert scopus_author_observation.blacklist_contains_any([33, 66, 78, 99, 92, 12])
+
+
+def test_scopus_author_observation_blacklist_check_publication(scopus_author_observation_sample,
+                                                               scopus_publication_sample):
+    scopus_author_observation = scopus_author_observation_sample  # type: ScopusAuthorObservation
+    scopus_publication = scopus_publication_sample
+    assert scopus_author_observation.blacklist_check_publication(scopus_publication)
+
+
+
 
