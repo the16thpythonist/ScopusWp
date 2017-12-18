@@ -1,6 +1,11 @@
+from ScopusWp.scopus.data import ScopusPublication, ScopusAuthor, ScopusAffiliation, ScopusAuthorProfile
+
 import ScopusWp.config as cfg
 
 import logging
+import urllib.parse as urlparse
+import requests
+import os
 
 
 class ScopusBaseController:
@@ -86,4 +91,100 @@ class ScopusBaseController:
 
     def _log(self, string):
         raise NotImplementedError()
+
+
+class ScopusAffiliationController(ScopusBaseController):
+
+    def __init__(self):
+        ScopusBaseController.__init__(self)
+
+        self.current_affiliation_id = None
+
+    def get_affiliation(self, affiliation_id):
+
+        # Requesting the affiliation retrieval and getting the response dict
+        response = self.request_affiliation_retrieval(affiliation_id)
+        response_dict = self._get_response_dict(response)
+
+        (
+            coredata_dict,
+            country,
+            city,
+            institute
+        ) = self._extract_affiliation_retrieval(response_dict)
+
+        # Creating the new affiliation representation object
+        affiliation = ScopusAffiliation(
+            affiliation_id,
+            country,
+            city,
+            institute
+        )
+
+        return affiliation
+
+    def request_affiliation_retrieval(self, affiliation_id):
+        query = {
+            'field': 'affiliation-name,city,country'
+        }
+
+        # Preparing the url to which to send the GET request
+        url_base = os.path.join(self.url_base, 'affiliation/affiliation_id', str(affiliation_id))
+        url = '{}?{}'.format(url_base, urlparse.urlencode(query))
+        # Sending the url request and fetching the response
+        response = requests.get(url, headers=self.headers)
+
+        return response
+
+    def _extract_affiliation_retrieval(self, response_dict):
+        country = self._get_dict_item(response_dict, 'country', '')
+        city = self._get_dict_item(response_dict, 'city', '')
+        institute = self._get_dict_item(response_dict, 'affiliation-name', '')
+        coredata_dict = self._get_dict_item(response_dict, 'coredata', {})
+
+        return coredata_dict, country, city, institute
+
+    def _get_response_dict(self, response):
+        # Turning the json response text from the requests response into a dict
+        try:
+            json_dict = json.loads(response.text)
+        except Exception as e:
+            # In case it contains neither the result to a author, abstract or search retrieval: Assuming something
+            # is wrong, returning an empty dict and writing an error into the logs
+            error_message = 'The response for the affiliation "{}" was not valid: {}'.format(
+                self.current_affiliation_id,
+                str(e)
+            )
+            self.logger.warning(error_message)
+            return {}
+
+        # It could be either the response from a abstract retrieval or the response for a search query
+        if 'affiliation-retrieval-response' in json_dict.keys():
+            response_dict = json_dict['affiliation-retrieval-response']
+        else:
+            # In case it contains neither the result to a author, abstract or search retrieval: Assuming something
+            # is wrong, returning an empty dict and writing an error into the logs
+            error_message = 'The response for the affiliation "{}" was not valid: {}'.format(
+                self.current_affiliation_id,
+                response.text
+            )
+            self.logger.warning(error_message)
+            # Returning an empty dict
+            return {}
+
+        # Returning the response dict
+        return response_dict
+
+    def _get_dict_item(self, dictionary, key, default):
+        if isinstance(dictionary, dict) and key in dictionary.keys():
+            return dictionary[key]
+        else:
+            error_message = 'There is no item to the key "{}" for the affiliation "{}" with the sub dict: {}'.format(
+                key,
+                self.current_affiliation_id,
+                str(dictionary)
+            )
+            self.logger.warning(error_message)
+            # Returning the default value, so that the program can still run in case there was no item in the dict
+            return default
 
