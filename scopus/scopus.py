@@ -764,3 +764,62 @@ class ScopusPublicationController(ScopusBaseController):
             self.logger.warning(error_message)
             # Returning the default value, so that the program can still run in case there was no item in the dict
             return default
+
+
+class ScopusController:
+
+    def __init__(self):
+
+        self.publication_controller = ScopusPublicationController
+        self.author_controller = ScopusAuthorController
+        self.affiliation_controller = ScopusAffiliationController
+
+    def get_publication(self, scopus_id):
+        return self.publication_controller.get_publication(scopus_id)
+
+    def get_publications(self, scopus_id_list):
+        publication_list = []
+        for scopus_id in scopus_id_list:
+            publication = self.get_publication(scopus_id)
+            publication_list.append(publication)
+
+        return publication_list
+
+    def get_author_profile(self, author_id):
+        return self.author_controller.get_author(author_id)
+
+    def get_author_profiles(self, author_id_list):
+        author_profile_list = []
+        for author_id in author_id_list:
+            author_profile = self.get_author_profile(author_id)
+            author_profile_list.append(author_profile)
+
+        return author_profile_list
+
+    def get_author_publications(self, author_profile):
+        return self.get_publications(author_profile.publications)
+
+    def get_citation_publications(self, publication):
+        return self.get_publications(publication.citations)
+
+    def get_publication_author_profiles(self, publication):
+        author_profile_list = []
+        for author in publication.authors:
+            author_id = int(author)
+            author_profile = self.get_author_profile(author_id)
+            author_profile_list.append(author_profile)
+        return author_profile_list
+
+    def get_affiliation(self, affiliation_id):
+        return self.affiliation_controller.get_affiliation(affiliation_id)
+
+    def get_affiliations(self, affiliation_id_list):
+        affiliation_list = []
+        for affiliation_id in affiliation_id_list:
+            affiliation = self.get_affiliation(affiliation_id)
+            affiliation_list.append(affiliation)
+        return affiliation_list
+
+    def get_publication_affiliations(self, publication):
+        return self.get_affiliations(publication.affiliations)
+

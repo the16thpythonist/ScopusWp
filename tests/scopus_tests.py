@@ -3,7 +3,7 @@ from ScopusWp.scopus.data import ScopusAuthorObservation
 
 from ScopusWp.scopus.scopus import ScopusAffiliationController
 from ScopusWp.scopus.scopus import ScopusAuthorController
-#from ScopusWp.scopus.scopus import ScopusPublicationController
+from ScopusWp.scopus.scopus import ScopusPublicationController
 
 import pytest
 
@@ -169,3 +169,10 @@ def test_author_request():
     assert isinstance(scopus_author_profile, ScopusAuthorProfile)
     assert scopus_author_profile.first_name == 'Andrei'
     assert scopus_author_profile.last_name == 'Shkarin'
+
+
+def test_publication_request():
+    publication_controller = ScopusPublicationController()
+    scopus_publication = publication_controller.get_publication(84899652059)
+    assert isinstance(scopus_publication, ScopusPublication)
+    assert int(scopus_publication) == 84899652059
