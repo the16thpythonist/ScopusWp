@@ -251,7 +251,7 @@ class ScopusAuthorController(ScopusBaseController):
             name_dict,
             affiliation_dict,
             h_index
-        ) = self._extract_author_response_dict(response_dict)
+        ) = self._extract_author_retrieval(response_dict)
 
         # Getting the coredata
         document_count = self._get_coredata(coredata_dict)
@@ -355,6 +355,12 @@ class ScopusAuthorController(ScopusBaseController):
         return response
 
     def _get_coredata(self, coredata_dict):
+        """
+        Given the coredata dict, this method will extract the document count from it
+
+        :param coredata_dict: The coredata dict from the response dict
+        :return: int
+        """
         document_count = self._get_dict_item(coredata_dict, 'document-count', 0)
         return document_count
 
@@ -367,13 +373,25 @@ class ScopusAuthorController(ScopusBaseController):
         return affiliation_id, affiliation_country, affiliation_city, affiliation_institute
 
     def _get_name_data(self, name_dict):
+        """
+        Given the name dict of the response dict, returns first name and last name of author
+
+        :param name_dict: The dict containing the name data from the response dict
+        :return:
+        """
         first_name = self._get_dict_item(name_dict, 'given-name', '')
         last_name = self._get_dict_item(name_dict, 'surname', '')
 
         return first_name, last_name
 
-    def _extract_author_response_dict(self, response_dict):
+    def _extract_author_retrieval(self, response_dict):
+        """
+        extracts the response dict from the author retrieval and returns the coredata dict, the name dict, the
+        affiliation dict and the h index of the author.
 
+        :param response_dict: The response dict of the author retrieval request
+        :return: dict, dict, dict, int
+        """
         affiliation_dict = self._get_dict_item(response_dict, 'affiliation-current', {})
         coredata_dict = self._get_dict_item(response_dict, 'coredata', {})
         name_dict = self._get_dict_item(response_dict, 'preferred-name', {})
