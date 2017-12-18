@@ -194,6 +194,24 @@ class ScopusAuthorProfile(ScopusIdentifierInterface):
         return False
 
 
+class ScopusAffiliation(ScopusIdentifierInterface):
+
+    def __init__(self, affiliation_id, country, city, institute):
+        # Init the Interface
+        ScopusIdentifierInterface.__init__(self)
+
+        self.id = affiliation_id
+        self.country = country
+        self.city = city
+        self.institute = institute
+
+    def get_id(self):
+        return int(self.id)
+
+    def __int__(self):
+        return self.get_id()
+
+
 class ScopusAuthorObservation:
 
     def __init__(self, scopus_id_list, first_name, last_name, whitelist, blacklist):
