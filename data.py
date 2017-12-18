@@ -193,3 +193,38 @@ class ScopusAuthorProfile(ScopusIdentifierInterface):
 
         return False
 
+
+class ScopusAuthorObservation:
+
+    def __init__(self, scopus_id_list, first_name, last_name, whitelist, blacklist):
+
+        self.ids = scopus_id_list
+        self.first_name = first_name
+        self.last_name = last_name
+        self.whitelist = whitelist
+        self.blacklist = blacklist
+
+    def whitelist_contains(self, affiliation_id):
+        return int(affiliation_id) in self.whitelist
+
+    def whitelist_contains_any(self, affiliation_id_list):
+        for affiliation_id in affiliation_id_list:
+            if self.whitelist_contains(affiliation_id):
+                return True
+        return False
+
+    def whitelist_check_publication(self, scopus_publication):
+        return self.whitelist_contains_any(scopus_publication.affiliations)
+
+    def blacklist_contains(self, affiliation_id):
+        return int(affiliation_id) in self.blacklist
+
+    def blacklist_contains_any(self, affiliation_id_list):
+        for affiliation_id in affiliation_id_list:
+            if self.blacklist_contains(affiliation_id):
+                return True
+        return False
+
+    def blacklist_check_publication(self, scopus_publication):
+        return self.blacklist_contains_any(scopus_publication.affiliations)
+
