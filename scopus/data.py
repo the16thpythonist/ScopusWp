@@ -265,7 +265,12 @@ class ScopusAuthorObservation:
         """
         # Checks whether the observed author is actually an author of the given pub and then if any of the affiliations
         # of the author is in the whitelist
-        return scopus_publication.id in self.ids and self.whitelist_contains_any(scopus_publication.affiliations)
+        _contains = False
+        for id in self.ids:
+            if scopus_publication.contains_author(id):
+                _contains = True
+                break
+        return _contains and self.whitelist_contains_any(scopus_publication.affiliations)
 
     def blacklist_contains(self, affiliation_id):
         """
@@ -298,5 +303,10 @@ class ScopusAuthorObservation:
         """
         # Checks whether the observed author is actually an author of the given pub and then if any of the affiliations
         # of the author is in the blacklist
-        return scopus_publication.id in self.ids and self.blacklist_contains_any(scopus_publication.affiliations)
+        _contains = False
+        for id in self.ids:
+            if scopus_publication.contains_author(id):
+                _contains = True
+                break
+        return _contains and self.blacklist_contains_any(scopus_publication.affiliations)
 
