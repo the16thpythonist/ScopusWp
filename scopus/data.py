@@ -17,7 +17,7 @@ class ScopusPublication(ScopusIdentifierInterface):
     def __init__(self, scopus_id, eid, doi, title, description, date, creator, author_list, citation_list,
                  keyword_list, journal, volume):
         # Init the interfaces
-        ScopusIdentifierInterface.__int__(self)
+        # ScopusIdentifierInterface.__int__(self)
 
         self.id = scopus_id
         self.eid = eid
