@@ -229,3 +229,206 @@ class ScopusAffiliationController(ScopusBaseController):
     def _log(self, string):
         pass
 
+
+class ScopusAuthorController(ScopusBaseController):
+
+    def __init__(self):
+        ScopusBaseController.__init__(self)
+
+        self.current_author_id = None
+
+    def get_author(self, author_id):
+        # Setting the currently processed author id, for debugging and logging
+        self.current_author_id = author_id
+
+        # Requesting the author retrieval and processing the received response into a dict
+        response = self.request_author_retrieval(author_id)
+        response_dict = self._get_response_dict(response)
+
+        # Extracting the most important data sets from the response dict
+        (
+            coredata_dict,
+            name_dict,
+            affiliation_dict,
+            h_index
+        ) = self._extract_author_response_dict(response_dict)
+
+        # Getting the coredata
+        document_count = self._get_coredata(coredata_dict)
+
+        # Getting the name information
+        first_name, last_name = self._get_name_data(name_dict)
+
+        # Getting the affiliation data
+        (
+            affiliation_id,
+            country,
+            city,
+            institute
+        ) = self._get_affiliation_data(affiliation_dict)
+
+        # Getting the list of scopus ids for all of the authors publications
+        publication_id_list = self.get_publications(author_id)
+
+        author_profile = ScopusAuthorProfile(
+            author_id,
+            first_name,
+            last_name,
+            h_index,
+            0,
+            document_count,
+            publication_id_list
+        )
+
+        return author_profile
+
+    def get_publications(self, author_id):
+        """
+        Gets a list with the scopus ids for all the publications, which were (partially) written by the author, whose
+        author id was given.
+
+        :param author_id: The author id of the author, whose publications to request
+        :return: The list of scopus ids
+        """
+        # TODO: What to do for multiple authors
+        self.current_author_id = author_id
+
+        # Requesting the search for the author and processing the response into a dict
+        response = self.request_publications(author_id)
+        response_dict = self._get_response_dict(response)
+
+        # Extracting the most important data sets from the response
+        entry_list = self._extract_search_response_dict(response_dict)
+        publication_id_list = self._get_scopus_id_list(entry_list)
+
+        return publication_id_list
+
+    def request_author_retrieval(self, author_id):
+        """
+        Requests a Author retrieval for the author, who is identifies by the given author id
+
+        :param author_id: The id of the author, whose data is to be requested
+        :return: The requests.response object
+        """
+        # The query with the url parameters for all the fields the HTTP response is supposed to contain
+        query = {
+            'field': 'eid,given-name,surname,h-index,document-count,affiliation-current'
+        }
+
+        # Preparing the url to which to send the GET request
+        url_base = os.path.join(self.url_base, 'author/author_id', str(author_id))
+        url = '{}?{}'.format(url_base, urlparse.urlencode(query))
+        # Sending the url request and fetching the response
+        response = requests.get(url, headers=self.headers)
+
+        return response
+
+    def request_publications(self, author_id):
+        """
+        If given a single author id or a list of author ids, returning a requests.response for a scopus search, that
+        contains the information about all the publications.
+
+        :param author_id: # int/str - The author id, for which to request the publications
+            # list[int/str] - a list of author ids, of which all publications requested
+        :return:
+        """
+        # Making the process better by using a single request for getting the pubs of multiple authors, instead of
+        # having to request anew for each author
+        # TODO: If its more than 200, it will not get all the pubs
+        search_query_string = ''
+        if isinstance(author_id, int) or isinstance(author_id, str):
+            search_query_string = 'AU-ID({})'.format(author_id)
+        elif isinstance(author_id, list):
+            # If the input to the method is a list of author ids making a query string, that connects multiple searches
+            # by author id by an OR Operator
+            search_query_string_list = []
+            for au_id in author_id:
+                _temp_string = 'AU-ID({})'.format(au_id)
+                search_query_string_list.append(_temp_string)
+            search_query_string = ' OR '.join(search_query_string_list)
+
+        query = {
+            'query': search_query_string
+        }
+
+        response = self.request_search(query)
+        return response
+
+    def _get_coredata(self, coredata_dict):
+        document_count = self._get_dict_item(coredata_dict, 'document-count', 0)
+        return document_count
+
+    def _get_affiliation_data(self, affiliation_dict):
+        affiliation_id = self._get_dict_item(affiliation_dict, '@id', '')
+        affiliation_country = self._get_dict_item(affiliation_dict, 'affiliation-country', '')
+        affiliation_city = self._get_dict_item(affiliation_dict, 'affiliation-city', '')
+        affiliation_institute = self._get_dict_item(affiliation_dict, 'affiliation-name', '')
+
+        return affiliation_id, affiliation_country, affiliation_city, affiliation_institute
+
+    def _get_name_data(self, name_dict):
+        first_name = self._get_dict_item(name_dict, 'given-name', '')
+        last_name = self._get_dict_item(name_dict, 'surname', '')
+
+        return first_name, last_name
+
+    def _extract_author_response_dict(self, response_dict):
+
+        affiliation_dict = self._get_dict_item(response_dict, 'affiliation-current', {})
+        coredata_dict = self._get_dict_item(response_dict, 'coredata', {})
+        name_dict = self._get_dict_item(response_dict, 'preferred-name', {})
+        h_index = self._get_dict_item(response_dict, 'h-index', 0)
+
+        return coredata_dict, name_dict, affiliation_dict, h_index
+
+    def _get_response_dict(self, response):
+        """
+        Turns the requests.response for a search request or a author retrieval request into a dictionary
+
+        :param response: The requests.response object
+        :return: A dict, that contains all the relevant requested information
+        """
+        # Turning the json response text from the requests response into a dict
+        json_dict = json.loads(response.text)
+
+        # It could be either the response from a abstract retrieval or the response for a search query
+        if 'author-retrieval-response' in json_dict.keys():
+            response_dict = json_dict['author-retrieval-response'][0]
+        elif 'search-results' in json_dict:
+            response_dict = json_dict['search-results']
+        else:
+            # In case it contains neither the result to a author, abstract or search retrieval: Assuming something
+            # is wrong, returning an empty dict and writing an error into the logs
+            error_message = 'The response for the author "{}" was not valid: {}'.format(
+                self.current_author_id,
+                response.text
+            )
+            self.logger.warning(error_message)
+            # Returning an empty dict
+            return {}
+
+        # Returning the response dict
+        return response_dict
+
+    def _get_dict_item(self, dictionary, key, default):
+        """
+        Checks if the dictionary contains a item to the given key and returns that in case, but if there is no key
+        a warning will be written in the scopus log and the given default value will be returned.
+
+        :param dictionary: The dict from which to get an item, but unsure if the key really exists
+        :param key: The key which to use on the dict
+        :param default: The default value for that key, that is returned in case there is no value in the dict
+        :return: The value of the dict
+        """
+        if isinstance(dictionary, dict) and key in dictionary.keys():
+            return dictionary[key]
+        else:
+            error_message = 'There is no item to the key "{}" for the author "{}" with the sub dict: {}'.format(
+                key,
+                self.current_author_id,
+                str(dictionary)
+            )
+            self.logger.warning(error_message)
+            # Returning the default value, so that the program can still run in case there was no item in the dict
+            return default
+

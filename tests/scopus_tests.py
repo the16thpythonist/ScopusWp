@@ -2,6 +2,8 @@ from ScopusWp.scopus.data import ScopusPublication, ScopusAuthor, ScopusAuthorPr
 from ScopusWp.scopus.data import ScopusAuthorObservation
 
 from ScopusWp.scopus.scopus import ScopusAffiliationController
+from ScopusWp.scopus.scopus import ScopusAuthorController
+#from ScopusWp.scopus.scopus import ScopusPublicationController
 
 import pytest
 
@@ -159,3 +161,11 @@ def test_affiliation_request():
     assert scopus_affiliation.country == 'Germany'
     assert scopus_affiliation.city == 'Karlsruhe'
     assert scopus_affiliation.institute == "Karlsruhe Institute of Technology"
+
+
+def test_author_request():
+    author_controller = ScopusAuthorController()
+    scopus_author_profile = author_controller.get_author(56950893700)
+    assert isinstance(scopus_author_profile, ScopusAuthorProfile)
+    assert scopus_author_profile.first_name == 'Andrei'
+    assert scopus_author_profile.last_name == 'Shkarin'
