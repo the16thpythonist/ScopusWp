@@ -205,26 +205,68 @@ class ScopusAuthorObservation:
         self.blacklist = blacklist
 
     def whitelist_contains(self, affiliation_id):
+        """
+        Whether or not the affiliation id is in the affiliation whitelist for that author.
+
+        :param affiliation_id: The int id to check for
+        :return: boolean
+        """
         return int(affiliation_id) in self.whitelist
 
     def whitelist_contains_any(self, affiliation_id_list):
+        """
+        Whether or not any one of the affiliation ids of the given list is in the whitelist for that author.
+
+        :param affiliation_id_list: A list of int affiliation ids to check
+        :return: boolean
+        """
         for affiliation_id in affiliation_id_list:
             if self.whitelist_contains(affiliation_id):
                 return True
         return False
 
     def whitelist_check_publication(self, scopus_publication):
-        return self.whitelist_contains_any(scopus_publication.affiliations)
+        """
+        Whether the observed author is author of the given publication and if one of the affiliations of the
+        publication is in the affiliation whitelist.
+
+        :param scopus_publication: The ScopusPublication to check
+        :return: boolean
+        """
+        # Checks whether the observed author is actually an author of the given pub and then if any of the affiliations
+        # of the author is in the whitelist
+        return scopus_publication.id in self.ids and self.whitelist_contains_any(scopus_publication.affiliations)
 
     def blacklist_contains(self, affiliation_id):
+        """
+        Whether the given affiliation id in the affiliation blacklist.
+
+        :param affiliation_id: The int id
+        :return: boolean
+        """
         return int(affiliation_id) in self.blacklist
 
     def blacklist_contains_any(self, affiliation_id_list):
+        """
+        Whether one of the affiliation ids of the given list is in the blacklist for that author.
+
+        :param affiliation_id_list: A list of affiliation ids to check
+        :return: boolean
+        """
         for affiliation_id in affiliation_id_list:
             if self.blacklist_contains(affiliation_id):
                 return True
         return False
 
     def blacklist_check_publication(self, scopus_publication):
-        return self.blacklist_contains_any(scopus_publication.affiliations)
+        """
+        Whether the observed author is author of the given publication and if one of the affiliation of the
+        publication is in the affiliation blacklist.
+
+        :param scopus_publication: The ScopusPublication to check
+        :return: boolean
+        """
+        # Checks whether the observed author is actually an author of the given pub and then if any of the affiliations
+        # of the author is in the blacklist
+        return scopus_publication.id in self.ids and self.blacklist_contains_any(scopus_publication.affiliations)
 
