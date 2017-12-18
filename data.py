@@ -195,7 +195,9 @@ class ScopusAuthorProfile(ScopusIdentifierInterface):
 
 
 class ScopusAffiliation(ScopusIdentifierInterface):
-
+    """
+    Represents the basic information about a scopus affiliation retrieval.
+    """
     def __init__(self, affiliation_id, country, city, institute):
         # Init the Interface
         ScopusIdentifierInterface.__init__(self)
@@ -206,9 +208,19 @@ class ScopusAffiliation(ScopusIdentifierInterface):
         self.institute = institute
 
     def get_id(self):
+        """
+        The int affiliation id.
+
+        :return: int
+        """
         return int(self.id)
 
     def __int__(self):
+        """
+        The method to convert the object to int. Returns the int affiliation id of the affiliation.
+
+        :return: int
+        """
         return self.get_id()
 
 
