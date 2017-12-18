@@ -5,6 +5,7 @@ import ScopusWp.config as cfg
 import logging
 import urllib.parse as urlparse
 import requests
+import json
 import os
 
 
@@ -187,4 +188,7 @@ class ScopusAffiliationController(ScopusBaseController):
             self.logger.warning(error_message)
             # Returning the default value, so that the program can still run in case there was no item in the dict
             return default
+
+    def _log(self, string):
+        pass
 

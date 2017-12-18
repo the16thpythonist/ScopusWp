@@ -1,6 +1,8 @@
 from ScopusWp.scopus.data import ScopusPublication, ScopusAuthor, ScopusAuthorProfile, ScopusAffiliation
 from ScopusWp.scopus.data import ScopusAuthorObservation
 
+from ScopusWp.scopus.scopus import ScopusAffiliationController
+
 import pytest
 
 
@@ -145,5 +147,15 @@ def test_scopus_author_observation_blacklist_check_publication(scopus_author_obs
     assert scopus_author_observation.blacklist_check_publication(scopus_publication)
 
 
+################################
+# THE SCOPUS CONTROLLERS TESTS #
+################################
 
 
+def test_affiliation_request():
+    affiliation_controller = ScopusAffiliationController()
+    scopus_affiliation = affiliation_controller.get_affiliation(60102538)
+    assert isinstance(scopus_affiliation, ScopusAffiliation)
+    assert scopus_affiliation.country == 'Germany'
+    assert scopus_affiliation.city == 'Karlsruhe'
+    assert scopus_affiliation.institute == "Karlsruhe Institute of Technology"
