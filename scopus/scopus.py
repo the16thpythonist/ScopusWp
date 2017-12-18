@@ -102,7 +102,13 @@ class ScopusAffiliationController(ScopusBaseController):
         self.current_affiliation_id = None
 
     def get_affiliation(self, affiliation_id):
+        """
+        If given the affiliation id sends a affiliation retrieval request to scopus and builds a ScopusAffiliation
+        object from the response.
 
+        :param affiliation_id: The int affiliation id for which to get the info
+        :return: The ScopusAffiliation object built from the scopus db info
+        """
         # Requesting the affiliation retrieval and getting the response dict
         response = self.request_affiliation_retrieval(affiliation_id)
         response_dict = self._get_response_dict(response)
@@ -125,6 +131,12 @@ class ScopusAffiliationController(ScopusBaseController):
         return affiliation
 
     def request_affiliation_retrieval(self, affiliation_id):
+        """
+        Sends a affiliation retrieval request to the scopus database.
+
+        :param affiliation_id: The affiliation id of which to retrieve the data
+        :return: The requests.Response object
+        """
         query = {
             'field': 'affiliation-name,city,country'
         }
@@ -138,6 +150,13 @@ class ScopusAffiliationController(ScopusBaseController):
         return response
 
     def _extract_affiliation_retrieval(self, response_dict):
+        """
+        Extracts the response dict of a affiliation retrieval into the coredata dict, the country, city and institute
+        name of the affiliation.
+
+        :param response_dict: The dict for the response
+        :return: void
+        """
         country = self._get_dict_item(response_dict, 'country', '')
         city = self._get_dict_item(response_dict, 'city', '')
         institute = self._get_dict_item(response_dict, 'affiliation-name', '')
@@ -146,6 +165,14 @@ class ScopusAffiliationController(ScopusBaseController):
         return coredata_dict, country, city, institute
 
     def _get_response_dict(self, response):
+        """
+        Gets the dict, that contains all the relevant data from the given requests response object.
+
+        First json loads the requests response object into a dict and then gets the sub dict, that actually contains
+        the data, returns that.
+        :param response: The requests Response object
+        :return: dict
+        """
         # Turning the json response text from the requests response into a dict
         try:
             json_dict = json.loads(response.text)
@@ -177,6 +204,16 @@ class ScopusAffiliationController(ScopusBaseController):
         return response_dict
 
     def _get_dict_item(self, dictionary, key, default):
+        """
+        Gets the value of the given dict for the given key. If there is a complication returns the value default
+        instead.
+
+        Also this method logs, whenever a complication occurs.
+        :param dictionary: The dict for which to attempt to call the key on
+        :param key: The key which to use on the dict
+        :param default: The default value, that will be returned, when there is a complication with the dict/key
+        :return:
+        """
         if isinstance(dictionary, dict) and key in dictionary.keys():
             return dictionary[key]
         else:
