@@ -767,7 +767,9 @@ class ScopusPublicationController(ScopusBaseController):
 
 
 class ScopusController:
-
+    """
+    The top controller for everything that has to do with requesting from the scopus database
+    """
     def __init__(self):
 
         self.publication_controller = ScopusPublicationController
@@ -775,9 +777,21 @@ class ScopusController:
         self.affiliation_controller = ScopusAffiliationController
 
     def get_publication(self, scopus_id):
+        """
+        Gets the ScopusPublication object to the scopus id from the scopus database
+
+        :param scopus_id: The int id of the publication
+        :return: The ScopusPublication object, representing the publication
+        """
         return self.publication_controller.get_publication(scopus_id)
 
     def get_publications(self, scopus_id_list):
+        """
+        Gets a list of publication objects to a list of scopus ids.
+
+        :param scopus_id_list: The list of int scopus ids for which to retrieve the publication data
+        :return: A list of ScopusPublication objects
+        """
         publication_list = []
         for scopus_id in scopus_id_list:
             publication = self.get_publication(scopus_id)
@@ -786,9 +800,21 @@ class ScopusController:
         return publication_list
 
     def get_author_profile(self, author_id):
+        """
+        The AuthorProfile object for a given author id.
+
+        :param author_id: The int id of the author
+        :return: The ScopusAuthorProfile representing the author
+        """
         return self.author_controller.get_author(author_id)
 
     def get_author_profiles(self, author_id_list):
+        """
+        A list of author profiles to a list of author ids.
+
+        :param author_id_list: The list of int author ids for which to get the profiles
+        :return: A list of ScopusAuthorProfile objects
+        """
         author_profile_list = []
         for author_id in author_id_list:
             author_profile = self.get_author_profile(author_id)
@@ -797,12 +823,30 @@ class ScopusController:
         return author_profile_list
 
     def get_author_publications(self, author_profile):
+        """
+        A list of publication objects for the publications the given author has contributed to.
+
+        :param author_profile: The ScopusAuthorProfile object representing the author
+        :return: A list of ScopusPublication objects
+        """
         return self.get_publications(author_profile.publications)
 
     def get_citation_publications(self, publication):
+        """
+        A list of publications, that have cited the publication given.
+
+        :param publication: The publication of which the citing publications shall be gotten
+        :return: A list of ScopusPublications
+        """
         return self.get_publications(publication.citations)
 
     def get_publication_author_profiles(self, publication):
+        """
+        Gets the author profiles of all the authors, that have contributed to the given publication.
+
+        :param publication: ScopusPublication
+        :return: A list of ScopusAuthorProfile objects
+        """
         author_profile_list = []
         for author in publication.authors:
             author_id = int(author)
@@ -811,9 +855,21 @@ class ScopusController:
         return author_profile_list
 
     def get_affiliation(self, affiliation_id):
+        """
+        The ScopusAffiliation data structure to the given affiliation id.
+
+        :param affiliation_id: the int id of the affiliation
+        :return: The ScopusAffiliation object
+        """
         return self.affiliation_controller.get_affiliation(affiliation_id)
 
     def get_affiliations(self, affiliation_id_list):
+        """
+        A list of affiliations to a list of affiliation ids.
+
+        :param affiliation_id_list: A list of affiliation ids
+        :return: A list of ScopusAffiliation objects
+        """
         affiliation_list = []
         for affiliation_id in affiliation_id_list:
             affiliation = self.get_affiliation(affiliation_id)
@@ -821,5 +877,11 @@ class ScopusController:
         return affiliation_list
 
     def get_publication_affiliations(self, publication):
+        """
+        The list of ScopusAffiliations for a given publication.
+
+        :param publication: The publication for which to get the affiliations
+        :return: a list of ScopusAffiliation objects
+        """
         return self.get_affiliations(publication.affiliations)
 
