@@ -829,7 +829,7 @@ class ScopusController:
         :param author_profile: The ScopusAuthorProfile object representing the author
         :return: A list of ScopusPublication objects
         """
-        return self.get_publications(author_profile.publications)
+        return self.get_multiple_publications(author_profile.publications)
 
     def get_citation_publications(self, publication):
         """
@@ -838,7 +838,7 @@ class ScopusController:
         :param publication: The publication of which the citing publications shall be gotten
         :return: A list of ScopusPublications
         """
-        return self.get_publications(publication.citations)
+        return self.get_multiple_publications(publication.citations)
 
     def get_publication_author_profiles(self, publication):
         """
@@ -883,5 +883,5 @@ class ScopusController:
         :param publication: The publication for which to get the affiliations
         :return: a list of ScopusAffiliation objects
         """
-        return self.get_affiliations(publication.affiliations)
+        return self.get_multiple_affiliations(publication.affiliations)
 
