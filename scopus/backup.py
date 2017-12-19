@@ -6,14 +6,49 @@ from ScopusWp.scopus.data import from_dict, to_dict
 import json
 
 
+###############
+#   CLASSES   #
+###############
 
+###############
+# Controllers #
+###############
+
+
+class ScopusBackupController:
+
+    def __init__(self):
+
+        self.backup_model = ScopusBackupPublicationModel()
+
+    def insert_publication(self, publication):
+        self.backup_model.insert(publication)
+
+    def insert_multiple_publications(self, publication_list):
+        for publication in publication_list:
+            self.insert_publication(publication)
+
+    def select_publication(self, scopus_id):
+        return self.backup_model.select(scopus_id)
+
+    def select_multiple_publications(self, scopus_id_list):
+        publication_list = []
+        for scopus_id in scopus_id_list:
+            publication = self.select_publication(scopus_id)
+            publication_list.append(publication)
+        return publication_list
+
+
+##########
+# Models #
+##########
 
 
 class ScopusBackupPublicationModel:
 
     def __init__(self):
 
-        self.database_access = MySQLDatabaseAccess
+        self.database_access = MySQLDatabaseAccess()
 
     def execute(self, sql):
         return self.database_access.select(sql)
