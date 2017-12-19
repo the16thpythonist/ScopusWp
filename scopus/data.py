@@ -10,6 +10,30 @@ class ScopusIdentifierInterface:
         raise NotImplementedError()
 
 
+class DictionaryConversionInterface:
+    """
+    Interface, that promises, that the implementing object can be converted into a dict and also that objects can be
+    loaded/ created from such dicts.
+    """
+    def to_dict(self):
+        """
+        Supposed to convert all the data stored in the object into a dictionary.
+
+        :return: A dict object
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def from_dict(dictionary):
+        """
+        A static method supposed to be able to load objects of that class from a dictionary object
+
+        :param dictionary: The dict object, containing the data about the construction of an object of that type
+        :return: A class of the type, that implements this interface
+        """
+        raise NotImplementedError()
+
+
 class ScopusPublication(ScopusIdentifierInterface):
     """
     Object, that represents a publication, that was retrieved from the Scopus database.
