@@ -3,6 +3,9 @@ from wordpress_xmlrpc import WordPressPost, WordPressComment
 from wordpress_xmlrpc.methods.posts import NewPost, EditPost, GetPost, DeletePost
 from wordpress_xmlrpc.methods.comments import NewComment, EditComment
 
+import ScopusWp.config as cfg
+import logging
+
 
 class WordpressPublicationPostController:
 
@@ -25,22 +28,22 @@ class WordpressPublicationPostController:
 
     def post_publication(self, publication, keywords):
         # Creating the view specifically for the wordpress posts
-        wp_post_view = PublicationWordpressPostView(publication, keywords)
+        post_view = PublicationWordpressPostView(publication, keywords)
 
         post = WordPressPost()
 
-        post.title = wp_post_view.get_title()
-        post.excerpt = wp_post_view.get_excerpt()
+        post.title = post_view.get_title()
+        post.excerpt = post_view.get_excerpt()
         # post.date = wp_post_view.get_date()
-        post.slug = wp_post_view.get_slug()
-        post.content = wp_post_view.get_content()
-        post.date = wp_post_view.get_date()
+        post.slug = post_view.get_slug()
+        post.content = post_view.get_content()
+        post.date = post_view.get_date()
 
         post.id = self.client.call(NewPost(post))
 
         post.terms_names = {
-            'category': wp_post_view.get_category_list(),
-            'post_tag': wp_post_view.get_tag_list()
+            'category': post_view.get_category_list(),
+            'post_tag': post_view.get_tag_list()
         }
 
         post.post_status = 'publish'
@@ -50,43 +53,21 @@ class WordpressPublicationPostController:
 
         return post.id
 
-    def post_citation(self, wordpress_id, publications, multiple=False):
+    def post_citations(self, wordpress_id, publication_list):
+        self.enable_comments(wordpress_id)
 
-        if isinstance(publications, list):
-            self.enable_comments(wordpress_id)
-            # In case there are no multiple post, if the one passed
-            comment_id_list = []
-            for publication in publications:
-                comment_id = self.post_citation(wordpress_id, publication, multiple=True)
-                comment_id_list.append(comment_id)
-
-            self.disable_comments(wordpress_id)
-
-        elif isinstance(publications, Publication):
-            # In case there are no multiple citations to be added, if its only the one passed post, then adding
-            # mod. the comment status of the post locally
-            if not multiple:
-                self.enable_comments(wordpress_id)
-
-            # Actually posting the comment
+        for publication in publication_list:
             comment = WordPressComment()
+            comment_view = PublicationWordpressCommentView(publication)
 
-            wp_comment_view = PublicationWordpressCitationView(publications)
-
-            comment.content = wp_comment_view.get_content()
+            comment.content = comment_view.get_content()
 
             comment_id = self.client.call(NewComment(wordpress_id, comment))
 
-            # Changing the date of the comment, but only if there is a data specified for the publication
-            date_created = wp_comment_view.get_date()
-            if date_created is not None:
-                comment.date_created = date_created
+            date_created = comment_view.get_date()
             self.client.call(EditComment(comment_id, comment))
 
-            if not multiple:
-                self.disable_comments(wordpress_id)
-
-            return comment_id
+        self.disable_comments(wordpress_id)
 
     def delete_post(self, wordpress_id):
         self.client.call(DeletePost(wordpress_id))
