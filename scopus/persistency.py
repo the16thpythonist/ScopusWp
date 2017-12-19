@@ -57,13 +57,45 @@ class ScopusBackupController:
         return publication_list
 
     def select_all_publications(self):
-        scopus_id_list = self.backup_model.select_all_ids()
-        return self.select_multiple_publications(scopus_id_list)
+        return self.backup_model.select_all()
 
+    def save(self):
+        self.backup_model.save()
+
+
+class ScopusCacheController:
+
+    def __init__(self, cache_model_class):
+
+        self.cache_model = cache_model_class()  # type: ScopusPickleCacheModel
+
+    def insert_publication(self, publication):
+        self.cache_model.insert(publication)
+
+    def insert_multiple_publications(self, publication_list):
+        for publication in publication_list:
+            self.insert_publication(publication)
+
+    def select_publication(self, scopus_id):
+        return self.cache_model.select(scopus_id)
+
+    def select_multiple_publications(self, scopus_id_list):
+        publication_list = []
+        for scopus_id in scopus_id_list:
+            publication = self.select_publication(scopus_id)
+            publication_list.append(publication)
+        return publication_list
+
+    def select_all_publications(self):
+        return self.cache_model.select_all()
+
+    def save(self):
+        self.cache_model.save()
 
 ##########
 # Models #
 ##########
+
 
 class ScopusPickleCacheModel(PublicationPersistencyInterface):
 
