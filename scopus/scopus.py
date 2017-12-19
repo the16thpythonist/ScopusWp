@@ -785,7 +785,7 @@ class ScopusController:
         """
         return self.publication_controller.get_publication(scopus_id)
 
-    def get_publications(self, scopus_id_list):
+    def get_multiple_publications(self, scopus_id_list):
         """
         Gets a list of publication objects to a list of scopus ids.
 
@@ -808,7 +808,7 @@ class ScopusController:
         """
         return self.author_controller.get_author(author_id)
 
-    def get_author_profiles(self, author_id_list):
+    def get_multiple_author_profiles(self, author_id_list):
         """
         A list of author profiles to a list of author ids.
 
@@ -863,7 +863,7 @@ class ScopusController:
         """
         return self.affiliation_controller.get_affiliation(affiliation_id)
 
-    def get_affiliations(self, affiliation_id_list):
+    def get_multiple_affiliations(self, affiliation_id_list):
         """
         A list of affiliations to a list of affiliation ids.
 
