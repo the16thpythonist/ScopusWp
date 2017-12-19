@@ -1,5 +1,7 @@
 from ScopusWp.config import PATH
 
+from ScopusWp.database import MySQLDatabaseAccess
+
 import json
 import pathlib
 
@@ -84,8 +86,39 @@ class IDManagerSingleton(IDManagerInterface):
         return self.unused_ids
 
 
+# TODO: Think about dependency injection for database access?
 
 class ReferenceModel:
 
     def __init__(self):
+        self.id_manager = IDManagerSingleton.get_instance()  # type: IDManagerSingleton
+
+        # The actual data base access
+        self.database_access = MySQLDatabaseAccess()
+
+    def select(self, internal_id):
+        sql = (
+            'SELECT '
+            'id, '
+            'scopus_id '
+            'FROM reference '
+            'WHERE id={internal_id}'
+        ).format(
+            internal_id=internal_id
+        )
+
+        row_list = self.database_access.select(sql)
+        return row_list[0]
+        # TODO: an if decision if actually exists and possibly exception
+
+    def insert(self, internal_id, scopus_id):
+        sql = (
+            'INSERT INTO '
+            'reference '
+        )
+
+    def search_by_wordpress(self, wordpress_id):
+        pass
+
+    def search_by_scopus(self, scopus_id):
         pass
