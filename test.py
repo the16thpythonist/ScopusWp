@@ -1,5 +1,5 @@
 from ScopusWp.config import init_logging
-from ScopusWp.controllers import ScopusController, WordpressController, ScopusWpController
+from ScopusWp.controllers import ScopusController, WordpressPublicationPostController, ScopusWpController
 from ScopusWp.repr import Publication
 
 from ScopusWp.controllers import ScopusPublicationController, ScopusAuthorController

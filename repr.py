@@ -150,7 +150,10 @@ class AuthorObservation:
         return False
 
     def in_whitelist(self, affiliation_id):
-        return int(affiliation_id) in self.whitelist
+        try:
+            return int(affiliation_id) in self.whitelist
+        except:
+            return False
 
     def check_blacklist(self, affiliation_id_list):
         for affiliation_id in affiliation_id_list:
@@ -159,7 +162,10 @@ class AuthorObservation:
         return False
 
     def in_blacklist(self, affiliation_id):
-        return int(affiliation_id) in self.blacklist
+        try:
+            return int(affiliation_id) in self.blacklist
+        except:
+            return False
 
 
 class Affiliation:
