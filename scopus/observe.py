@@ -6,6 +6,10 @@ import os
 import json
 import configparser
 
+#############
+#  CLASSES  #
+#############
+
 
 class AuthorObservationInterface:
 
@@ -26,6 +30,55 @@ class AuthorObservationInterface:
 
     def __contains__(self, item):
         raise NotImplementedError()
+
+###############
+# Controllers #
+###############
+
+
+class ScopusObservationController:
+
+    def __init__(self):
+
+        self.author_observation_model = AuthorObservationModel()
+
+    def filter(self, publication_list):
+        whitelist_publications = []
+        blacklist_publications = []
+        remaining_publications = []
+
+        for publication in publication_list:
+            _is_blacklist = False
+            _is_whitelist = False
+            # Checking the affiliations for all the authors
+            for author in publication.authors:
+                author_id = int(author.id)
+                if author_id in self.author_observation_model:
+                    author_observation = self.author_observation_model[author_id]
+                    _is_whitelist = author_observation.check_whitelist(author.affiliations)
+                    # If there was a blacklist found it would be overwritten with the next author, like this a TRUE
+                    # will be preserved until the end of the loop
+                    if not _is_blacklist:
+                        _is_blacklist = author_observation.check_blacklist(author.affiliations)
+
+                    # In the case of whitelist, the publication will be added instantly, but for blacklist it is
+                    # decided after all authors have been iterated
+                    if _is_whitelist:
+                        whitelist_publications.append(publication)
+                        break
+
+            if _is_blacklist:
+                blacklist_publications.append(publication)
+            else:
+                remaining_publications.append(publication)
+
+        return whitelist_publications, blacklist_publications, remaining_publications
+
+
+
+############
+#  Models  #
+############
 
 
 class AuthorObservationModel:
