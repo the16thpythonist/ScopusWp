@@ -46,6 +46,12 @@ class ScopusObservationController:
         author_observation = self.author_observation_model[int(author)]  # type: ScopusAuthorObservation
         return author_observation.keywords
 
+    def all_observations(self):
+        return self.author_observation_model.values()
+
+    def all_observed_ids(self):
+        return self.author_observation_model.keys()
+
     def filter(self, publication_list):
         whitelist_publications = []
         blacklist_publications = []
