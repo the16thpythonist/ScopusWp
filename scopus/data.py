@@ -7,17 +7,21 @@ import json
 ###############
 
 
-def to_dict(scopus_object):
+def to_dict(obj):
     """
     Turns every object, that implements the DictConversionInterface into a dict.
 
-    :param scopus_object: The scopus data type, that converts into a dict
+    :param obj: The scopus data type, that converts into a dict
     :return: a dict object built from the data of the given object
     """
-    if isinstance(scopus_object, DictionaryConversionInterface):
-        return scopus_object.to_dict()
-    else:
-        pass
+    if isinstance(obj, DictionaryConversionInterface):
+        return obj.to_dict()
+    elif isinstance(obj, list):
+        dict_list = []
+        for item in obj:
+            _dict = to_dict(item)
+            dict_list.append(_dict)
+        return dict_list
 
 
 def from_dict(scopus_dict):
