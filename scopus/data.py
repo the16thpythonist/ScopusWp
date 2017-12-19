@@ -1,5 +1,8 @@
 import json
 
+# TODO: Make the to_dict and from_dict accept lists
+# TODO: Implement a error method into the dict conversion interface
+
 ###############
 #  FUNCTIONS  #
 ###############
@@ -166,6 +169,61 @@ class ScopusPublication(ScopusIdentifierInterface):
         :return: boolean
         """
         return affiliation_id in self.affiliations
+
+    def to_dict(self):
+
+        author_dict_list = []
+        for author in self.authors:
+            author_dict = author.to_dict()
+            author_dict_list.append(author_dict)
+
+        dictionary = {
+            'id': self.id,
+            'eid': self.eid,
+            'doi': self.doi,
+            'title': self.title,
+            'description': self.description,
+            'date': self.date,
+            'journal': self.journal,
+            'volume': self.volume,
+            'creator': self.creator.to_dict(),
+            'keywords': self.keywords,
+            'authors': author_dict_list,
+            'citations': self.citations
+        }
+        return dictionary
+
+    @staticmethod
+    def from_dict(dictionary):
+        if 'type' in dictionary and dictionary['type'] == 'ScopusPublication':
+            author_list = []
+            for author_dict in dictionary['authors']:
+                author = ScopusAuthor.from_dict(author_dict)
+                author_list.append(author)
+
+            publication = ScopusPublication(
+                dictionary['id'],
+                dictionary['eid'],
+                dictionary['doi'],
+                dictionary['title'],
+                dictionary['description'],
+                dictionary['date'],
+                ScopusAuthor.from_dict(dictionary['creator']),
+                author_list,
+                dictionary['citations'],
+                dictionary['keywords'],
+                dictionary['journal'],
+                dictionary['volume']
+            )
+            return publication
+
+        else:
+            error_message = (
+                'The type of the dict {} is not compatible for a ScopusAuthor conversion'
+            ).format(
+                str(dictionary)
+            )
+            raise TypeError(error_message)
 
 
 class ScopusAuthor(ScopusIdentifierInterface):
