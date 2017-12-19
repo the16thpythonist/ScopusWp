@@ -6,7 +6,10 @@ from ScopusWp.scopus.data import from_dict, to_dict
 import json
 
 
-class ScopusBackupModel:
+
+
+
+class ScopusBackupPublicationModel:
 
     def __init__(self):
 
