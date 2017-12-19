@@ -4,6 +4,7 @@ from wordpress_xmlrpc.methods.posts import NewPost, EditPost, GetPost, DeletePos
 from wordpress_xmlrpc.methods.comments import NewComment, EditComment
 
 from ScopusWp.view import PublicationWordpressPostView
+from ScopusWp.view import PublicationWordpressCommentView
 
 import ScopusWp.config as cfg
 import logging

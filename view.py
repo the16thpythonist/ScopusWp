@@ -3,6 +3,49 @@ import datetime
 from ScopusWp.data import Publication
 
 
+def _author_index_name(author_tuple):
+    index_name_string = '{} {}.'.format(author_tuple[1], author_tuple[0][0])
+    return index_name_string
+
+
+class PublicationWordpressCommentView:
+
+    def __init__(self, publication):
+        self.publication = publication
+
+    def get_content(self):
+
+        author_string = _author_index_name(self.publication.authors[0])
+        title_string = self.publication.title
+
+        journal_string = self.publication.journal
+        volume_string = self.publication.volume
+        doi_string = self.publication.doi
+
+        date_tuple = self.get_date()
+        year_string = str(date_tuple.tm_year)
+
+        content_string = (
+            u'{author} et al.: '
+            u'<a href="http://dx.doi.org/{doi}"><b>{title}</b></a>'
+            u' in {journal}, {volume} ({year}).'
+        ).format(
+            author=author_string,
+            doi=doi_string,
+            title=title_string,
+            journal=journal_string,
+            volume=volume_string,
+            year=year_string
+        )
+
+        return content_string
+
+    def get_date(self):
+        date_string = self.publication.date
+        date_tuple = datetime.datetime.strptime(date_string, '%Y-%m-%d').timetuple()
+        return date_tuple
+
+
 class PublicationWordpressPostView:
 
     def __init__(self, publication, keyword_list):
@@ -85,7 +128,7 @@ class PublicationWordpressPostView:
 
         for index in range(1, author_count):
             author_tuple = self.publication.authors[index]
-            author_index_name = self._author_index_name(author_tuple)
+            author_index_name = _author_index_name(author_tuple)
             author_string = ', {}'.format(author_index_name)
             author_string_list.append(author_string)
             if index == max_amount:
@@ -94,7 +137,3 @@ class PublicationWordpressPostView:
 
         authors_string = ''.join(author_string_list)
         return authors_string
-
-    def _author_index_name(self, author_tuple):
-        index_name_string = '{} {}.'.format(author_tuple[1], author_tuple[0][0])
-        return index_name_string
