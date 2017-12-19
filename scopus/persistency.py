@@ -10,6 +10,22 @@ import json
 #   CLASSES   #
 ###############
 
+
+class PublicationPersistencyInterface:
+
+    def select(self, scopus_id):
+        raise NotImplementedError()
+
+    def select_all(self):
+        raise NotImplementedError()
+
+    def insert(self, publication):
+        raise NotImplementedError()
+
+    def save(self):
+        raise NotImplementedError()
+
+
 ###############
 # Controllers #
 ###############
@@ -37,6 +53,10 @@ class ScopusBackupController:
             publication = self.select_publication(scopus_id)
             publication_list.append(publication)
         return publication_list
+
+    def select_all_publications(self):
+        scopus_id_list = self.backup_model.select_all_ids()
+        return self.select_multiple_publications(scopus_id_list)
 
 
 ##########
@@ -187,3 +207,28 @@ class ScopusBackupPublicationModel:
             return publication
 
             # TODO: error when no pub found
+
+    def save(self):
+        self.database_access.save()
+
+    def select_all(self):
+        # Todo: Make this to be more efficient by combining into one query
+        scopus_id_list = self.select_all_ids()
+        publication_list = []
+        for scopus_id in scopus_id_list:
+            publication = self.select(scopus_id)
+            publication_list.append(publication)
+        return publication_list
+
+    def select_all_ids(self):
+
+        sql = (
+            'SELECT scopus_id FROM publications'
+        )
+
+        scopus_id_list = []
+        row_list = self.database_access.select(sql)
+        for row in row_list:
+            scopus_id = row[0]
+            scopus_id_list.append(scopus_id)
+        return scopus_id_list
