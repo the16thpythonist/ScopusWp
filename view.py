@@ -1,8 +1,13 @@
+import datetime
+
+from ScopusWp.data import Publication
+
+
 class PublicationWordpressPostView:
 
     def __init__(self, publication, keyword_list):
-        self.keywords = keyword_list  # type: list[str]
         self.publication = publication  # type: Publication
+        self.categories = keyword_list
 
     def get_title(self):
         # Encoding the title in utf 8
@@ -22,7 +27,7 @@ class PublicationWordpressPostView:
     def get_excerpt(self):
 
         # Getting the author string
-        author_string = self._get_authors_string(2).encode('utf-8')
+        author_string = self._authors_string(2).encode('utf-8')
 
         journal_string = self.publication.journal.encode('utf-8')
         volume_string = self.publication.volume.encode('utf-8')
@@ -37,16 +42,14 @@ class PublicationWordpressPostView:
         return excerpt_string
 
     def get_content(self):
-        author_string = self._get_authors_string(20)
+        author_string = self._authors_string(20)
         journal_string = self.publication.journal
         volume_string = self.publication.volume
         description_string = self.publication.description
         doi_string = self.publication.doi
 
         date_tuple = self.get_date()
-        year_string = ''
-        if not(date_tuple is None):
-            year_string = str(date_tuple.tm_year)
+        year_string = str(date_tuple.tm_year)
 
         content_string = (
             u'<p>{authors}</p>'
@@ -66,36 +69,32 @@ class PublicationWordpressPostView:
         return content_string
 
     def get_category_list(self):
-        return self.keywords
+        return self.categories
 
     def get_tag_list(self):
-        tag_list = self.publication.keywords
+        tag_list = self.publication.tags
         if '' in tag_list:
             tag_list.remove('')
         return tag_list
 
-    def _get_authors_string(self, max_amount):
-        first_author_string = self.publication.authors[0].index_name
-        authors_string_list = [first_author_string]
+    def _authors_string(self, max_amount):
 
         author_count = len(self.publication.authors)
-        if author_count < max_amount:
-            # Adding all the author names to one long string
-            for index in range(1, author_count):
-                author_string = ', {}'.format(self.publication.authors[index].index_name)
-                authors_string_list.append(author_string)
 
-        else:
-            # In case the list of authors is too long just adding an et al. after the first, most important, author
-            authors_string_list.append(' et al.')
+        author_string_list = []
 
-        authors_string = ''.join(authors_string_list)
+        for index in range(1, author_count):
+            author_tuple = self.publication.authors[index]
+            author_index_name = self._author_index_name(author_tuple)
+            author_string = ', {}'.format(author_index_name)
+            author_string_list.append(author_string)
+            if index == max_amount:
+                author_string_list.append(' et al.')
+                break
+
+        authors_string = ''.join(author_string_list)
         return authors_string
 
-class PublicationWordpressPostView:
-
-    def __init__(self, publication, keyword_list):
-        self.publication = publication
-        self.keywords = keyword_list
-
-    def
+    def _author_index_name(self, author_tuple):
+        index_name_string = '{} {}.'.format(author_tuple[1], author_tuple[0][0])
+        return index_name_string

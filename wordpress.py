@@ -3,6 +3,8 @@ from wordpress_xmlrpc import WordPressPost, WordPressComment
 from wordpress_xmlrpc.methods.posts import NewPost, EditPost, GetPost, DeletePost
 from wordpress_xmlrpc.methods.comments import NewComment, EditComment
 
+from ScopusWp.view import PublicationWordpressPostView
+
 import ScopusWp.config as cfg
 import logging
 
