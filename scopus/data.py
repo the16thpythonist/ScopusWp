@@ -1,7 +1,6 @@
 import json
 
 # TODO: Make the to_dict and from_dict accept lists
-# TODO: Implement a error method into the dict conversion interface
 
 ###############
 #  FUNCTIONS  #
@@ -37,6 +36,12 @@ def from_dict(scopus_dict):
 
             return scopus_object
 
+    elif isinstance(scopus_dict, list):
+        object_list = []
+        for dictionary in scopus_dict:
+            _object = from_dict(dictionary)
+            object_list.append(_object)
+        return object_list
 
 ###############
 #   CLASSES   #
