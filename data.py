@@ -11,13 +11,14 @@ class Publication:
         self.volume = volume
 
     @staticmethod
-    def from_scopus_publication(scopus_publication):
+    def from_scopus_publication(scopus_publication, publication_id):
         author_list = []
         for author in scopus_publication.authors:
             author_tuple = (author.first_name, author.last_name)
             author_list.append(author_tuple)
 
         publication = Publication(
+            publication_id,
             scopus_publication.title,
             scopus_publication.description,
             scopus_publication.date,

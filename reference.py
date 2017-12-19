@@ -2,6 +2,8 @@ from ScopusWp.config import PATH
 
 from ScopusWp.database import MySQLDatabaseAccess
 
+from ScopusWp.data import Publication
+
 import json
 import pathlib
 
@@ -86,6 +88,33 @@ class IDManagerSingleton(IDManagerInterface):
         return self.unused_ids
 
 
+class ReferenceController:
+
+    def __init__(self):
+
+        self.reference_model = ReferenceModel()
+        self.id_manager = IDManagerSingleton.get_instance()
+
+    def select_reference(self, internal_id):
+        return self.reference_model.select(internal_id)
+
+    def insert_reference(self, internal_id, wordpress_id, scopus_id):
+        self.reference_model.insert(internal_id, wordpress_id, scopus_id)
+
+    def insert_publication(self, publication, wordpress_id, scopus_id):
+        assert isinstance(publication, Publication)
+
+        self.reference_model.insert(publication.id, wordpress_id, scopus_id)
+
+    def publication_from_scopus(self, scopus_publication):
+        # Getting an id from the id manager
+        publication_id = self.id_manager.new()
+
+        # Creating the publication object
+        publication = Publication.from_scopus_publication(scopus_publication, publication_id)
+        return publication
+
+
 # TODO: Think about dependency injection for database access?
 
 class ReferenceModel:
@@ -111,11 +140,24 @@ class ReferenceModel:
         return row_list[0]
         # TODO: an if decision if actually exists and possibly exception
 
-    def insert(self, internal_id, scopus_id):
+    def insert(self, internal_id, wordpress_id, scopus_id):
         sql = (
-            'INSERT INTO '
-            'reference '
+            'INSERT IGNORE INTO '
+            'reference ('
+            'id, '
+            'wordpress_id, '
+            'scopus_id)'
+            'VALUES ('
+            '{internal_id},'
+            '{wordpress_id}, '
+            '{scopus_id})'
+        ).format(
+            internal_id=internal_id,
+            wordpress_id=wordpress_id,
+            scopus_id=scopus_id
         )
+
+        self.database_access.execute(sql)
 
     def search_by_wordpress(self, wordpress_id):
         pass
