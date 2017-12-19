@@ -8,6 +8,8 @@ from ScopusWp.config import PATH
 import json
 import pathlib
 
+# TODO: make a json cache with pprint format string
+
 ###############
 #   CLASSES   #
 ###############
