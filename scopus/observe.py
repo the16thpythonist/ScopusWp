@@ -1,6 +1,30 @@
 import os
 import configparser
 
+class AuthorObservationInterface:
+
+    def get_observation(self, author):
+        raise NotImplementedError()
+
+    def contains_author(self, author):
+        raise NotImplementedError()
+
+    def values(self):
+        pass
+
+    def keys(self):
+        pass
+
+    def __getitem__(self, item):
+        pass
+
+    def __contains__(self, item):
+        pass
+
+
+class AuthorObservationModel:
+
+    def __init__(self):
 
 class ObservedAuthorsModel2:
 
