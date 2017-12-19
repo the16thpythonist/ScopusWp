@@ -17,17 +17,29 @@ class Db:
     def get_instance():
 
         if Db._instance is None:
-            config = Config.get_instance()
-            database = config['MYSQL']['database']
-            username = config['MYSQL']['username']
-            password = config['MYSQL']['password']
-            connector = MySQLdb.connect(host='localhost', user=username, passwd=password, db=database)
-            Db._instance = connector
+            Db.new_instance()
 
         return Db._instance
 
+    @staticmethod
+    def new_instance():
+        config = Config.get_instance()
+        database = config['MYSQL']['database']
+        username = config['MYSQL']['username']
+        password = config['MYSQL']['password']
+        connector = MySQLdb.connect(host='localhost', user=username, passwd=password, db=database)
+        Db._instance = connector
+
 
 class SQLDatabaseAccessInterface:
+
+    def save(self):
+        """
+        Supposed to save the changes made to the database
+
+        :return: void
+        """
+        raise NotImplementedError()
 
     def execute(self, sql):
         """
@@ -58,6 +70,10 @@ class MySQLDatabaseAccess(SQLDatabaseAccessInterface):
 
         # Getting the according logger
         self.logger = logging.getLogger(SQL_LOGGING_EXTENSION)
+
+    def save(self):
+        self.cursor.close()
+        self.cursor = self.db.cursor()
 
     def execute(self, sql):
         try:
