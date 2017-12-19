@@ -1,3 +1,6 @@
+import json
+
+
 class ScopusIdentifierInterface:
     """
     Interface, that promises, that when implemented the identifier of an object (id) can be acquired by calling an
@@ -170,6 +173,45 @@ class ScopusAuthor(ScopusIdentifierInterface):
         :return:
         """
         return int(affiliation_id) in self.affiliations
+
+    def to_dict(self):
+        """
+        Turns the data inside the object into a dict
+
+        :return: a dict object containing all the data of the object
+        """
+        dictionary = {
+            'type': 'ScopusAuthor',
+            'id': self.id,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'affiliations': json.dumps(self.affiliations)
+        }
+        return dictionary
+
+    @staticmethod
+    def from_dict(dictionary):
+        """
+        Loads a ScopusAuthor object from a dictionary, that has the correct format.
+
+        :param dictionary: The dict to convert into a ScopusAuthor object
+        :return: A scopusAuthor object
+        """
+        if 'type' in dictionary.keys() and dictionary['type'] == 'ScopusAuthor':
+            author = ScopusAuthor(
+                dictionary['first_name'],
+                dictionary['last_name'],
+                dictionary['id'],
+                json.loads(dictionary['affiliations'])
+            )
+            return author
+        else:
+            error_message = (
+                'The type of the dict {} is not compatible for a ScopusAuthor conversion'
+            ).format(
+                str(dictionary)
+            )
+            raise TypeError(error_message)
 
 
 class ScopusAuthorProfile(ScopusIdentifierInterface):
