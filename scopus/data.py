@@ -398,9 +398,9 @@ class ScopusAffiliation(ScopusIdentifierInterface):
 
 class ScopusAuthorObservation:
 
-    def __init__(self, scopus_id_list, first_name, last_name, keyword_list, whitelist, blacklist):
+    def __init__(self, author_id_list, first_name, last_name, keyword_list, whitelist, blacklist):
 
-        self.ids = scopus_id_list
+        self.ids = author_id_list
         self.first_name = first_name
         self.last_name = last_name
         self.keywords = keyword_list

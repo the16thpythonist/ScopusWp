@@ -1,5 +1,11 @@
+from ScopusWp.config import PATH
+
+from ScopusWp.scopus.data import ScopusAuthorObservation
+
 import os
+import json
 import configparser
+
 
 class AuthorObservationInterface:
 
@@ -10,21 +16,89 @@ class AuthorObservationInterface:
         raise NotImplementedError()
 
     def values(self):
-        pass
+        raise NotImplementedError()
 
     def keys(self):
-        pass
+        raise NotImplementedError()
 
     def __getitem__(self, item):
-        pass
+        raise NotImplementedError()
 
     def __contains__(self, item):
-        pass
+        raise NotImplementedError()
 
 
 class AuthorObservationModel:
 
     def __init__(self):
+        self.path_string = '{}/scopus/authors.ini'.format(PATH)
+        self.config = configparser.ConfigParser()
+        self.config.read(self.path_string)
+
+        self.dict, self.author_observations = self.load()
+
+    def __contains__(self, item):
+        self.contains_author(item)
+
+    def __getitem__(self, item):
+        return self.get_observation(item)
+
+    def get_observation(self, author):
+        return self.dict[int(author)]
+
+    def contains_author(self, author):
+        return int(author) in self.keys()
+
+    def keys(self):
+        return list(self.dict.keys())
+
+    def values(self):
+        return self.author_observations
+
+    def load(self):
+        content_dict = {}
+        author_observation_list = []
+        for section in self.config.keys():
+            if section == 'DEFAULT':
+                continue
+
+            sub_dict = dict(section)
+
+            # Getting the author observation
+            author_observation = self._get_author_observation(sub_dict)
+            author_observation_list.append(author_observation)
+            # Adding a reference to the same author observation to all the author ids in the list
+            for author_id in author_observation.ids:
+                content_dict[author_id] = author_observation
+
+        return content_dict, author_observation_list
+
+    @staticmethod
+    def _get_author_observation(self, sub_dict):
+
+        scopus_ids_json_string = sub_dict['ids']
+        scopus_ids = json.loads(scopus_ids_json_string)
+
+        keywords_json_string = sub_dict['keywords']
+        keywords = json.loads(keywords_json_string)
+
+        whitelist_json_string = sub_dict['scopus_whitelist']
+        whitelist = json.loads(whitelist_json_string)
+
+        blacklist_json_string = sub_dict['scopus_blacklist']
+        blacklist = json.loads(blacklist_json_string)
+
+        author_observation = ScopusAuthorObservation(
+            scopus_ids,
+            sub_dict['first_name'],
+            sub_dict['last_name'],
+            keywords,
+            whitelist,
+            blacklist
+        )
+
+        return author_observation
+
 
 class ObservedAuthorsModel2:
 
