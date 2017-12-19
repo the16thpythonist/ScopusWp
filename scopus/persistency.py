@@ -3,14 +3,16 @@ from ScopusWp.database import MySQLDatabaseAccess
 from ScopusWp.scopus.data import ScopusPublication
 from ScopusWp.scopus.data import from_dict, to_dict
 
-import json
+from ScopusWp.config import PATH
 
+import json
+import pathlib
 
 ###############
 #   CLASSES   #
 ###############
 
-
+# TODO: Make it a dict-like object
 class PublicationPersistencyInterface:
 
     def select(self, scopus_id):
@@ -63,8 +65,37 @@ class ScopusBackupController:
 # Models #
 ##########
 
+class ScopusPickleCacheModel(PublicationPersistencyInterface):
 
-class ScopusBackupPublicationModel:
+    def __init__(self):
+
+        self.path_string = '{}/scopus/cache.pkl'.format(PATH)
+
+        self.path = pathlib.Path(self.path_string)
+
+        self.content = self.load
+
+    def load(self):
+        with self.path.open(mode='r') as file:
+            content = json.load(file)
+        return content
+
+    def insert(self, publication):
+        self.content[int(publication)] = publication
+
+    def select(self, scopus_id):
+        if scopus_id in self.content.keys():
+            return self.content[scopus_id]
+
+    def select_all(self):
+        return list(self.content.values())
+
+    def save(self):
+        with self.path.open(mode="wb+") as file:
+            json.dump(self.content, file)
+
+
+class ScopusBackupPublicationModel(PublicationPersistencyInterface):
 
     def __init__(self):
 
