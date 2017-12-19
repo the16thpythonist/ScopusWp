@@ -6,7 +6,7 @@ import ScopusWp.config as cfg
 
 from wordpress_xmlrpc import Client
 from wordpress_xmlrpc import WordPressPost, WordPressComment
-from wordpress_xmlrpc.methods.posts import NewPost, EditPost, GetPost
+from wordpress_xmlrpc.methods.posts import NewPost, EditPost, GetPost, DeletePost
 from wordpress_xmlrpc.methods.comments import NewComment, EditComment
 
 from ScopusWp.repr import Publication
@@ -759,7 +759,7 @@ class ScopusPublicationController(ScopusController):
             return default
 
 
-class WordpressController:
+class WordpressPublicationPostController:
 
     def __init__(self):
         # Getting the config instance for the project
@@ -843,6 +843,13 @@ class WordpressController:
 
             return comment_id
 
+    def delete_post(self, wordpress_id):
+        self.client.call(DeletePost(wordpress_id))
+
+    def delete_posts(self, wordpress_id_list):
+        for wordpress_id in wordpress_id_list:
+            self.delete_post(wordpress_id)
+
     def enable_comments(self, wordpress_id):
         # Getting the Post
         post = self.client.call(GetPost(wordpress_id))
@@ -877,7 +884,7 @@ class ScopusWpController:
         self.scopus_author_controller = ScopusAuthorController()
         self.scopus_affiliation_controller = ScopusAffiliationController()
         # Creating the wordpress controller
-        self.wordpress_controller = WordpressController()
+        self.wordpress_controller = WordpressPublicationPostController()
 
         self.observed_author_model = ObservedAuthorsModel()
         self.cache_model = CacheModel()
