@@ -1,7 +1,8 @@
 class Publication:
 
-    def __init__(self, id, title, description, date, doi, author_list, journal, volume):
+    def __init__(self, id, title, description, date, doi, author_list, tag_list, journal, volume):
         self.id = id
+        self.tags = tag_list
         self.title = title
         self.description = description
         self.date = date
@@ -24,8 +25,8 @@ class Publication:
             scopus_publication.date,
             scopus_publication.doi,
             author_list,
+            scopus_publication.keywords,
             scopus_publication.journal,
             scopus_publication.volume
         )
-
         return publication
