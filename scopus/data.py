@@ -1,5 +1,44 @@
 import json
 
+###############
+#  FUNCTIONS  #
+###############
+
+
+def to_dict(scopus_object):
+    """
+    Turns every object, that implements the DictConversionInterface into a dict.
+
+    :param scopus_object: The scopus data type, that converts into a dict
+    :return: a dict object built from the data of the given object
+    """
+    if isinstance(scopus_object, DictionaryConversionInterface):
+        return scopus_object.to_dict()
+    else:
+        pass
+
+
+def from_dict(scopus_dict):
+    """
+    Creates a object from the dict, that was created by the DictConversionInterface.
+
+    :param scopus_dict: The dict to create an object from
+    :return: An object of the class, that implements a DictConversionInterface
+    """
+    if isinstance(scopus_dict, dict):
+        if 'type' in scopus_dict:
+            code_string = (
+                '{}.from_dict(scopus_dict)'
+            ).format(scopus_dict['type'])
+            scopus_object = eval(code_string)
+
+            return scopus_object
+
+
+###############
+#   CLASSES   #
+###############
+
 
 class ScopusIdentifierInterface:
     """
