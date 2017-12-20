@@ -73,6 +73,7 @@ class MySQLDatabaseAccess(SQLDatabaseAccessInterface):
 
     def save(self):
         self.cursor.close()
+        self.db.commit()
         self.cursor = self.db.cursor()
 
     def execute(self, sql):
@@ -97,7 +98,7 @@ class MySQLDatabaseAccess(SQLDatabaseAccessInterface):
         # Second: iterating through the contents of the cursor
         row_list = []
         for row in self.cursor:
-            if isinstance(row, list):
+            if isinstance(row, (list, tuple)):
                 row_list.append(row)
             else:
                 # If the contents of the cursor are no rows, than either there was an error, or the method was misused
@@ -108,3 +109,4 @@ class MySQLDatabaseAccess(SQLDatabaseAccessInterface):
                     str(sql).replace('\n', ' '),
                     str(row).replace('\n', ' ')
                 )
+        return row_list

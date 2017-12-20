@@ -8,6 +8,8 @@ from ScopusWp.config import PATH
 import json
 import pathlib
 
+import pickle
+
 # TODO: make a json cache with pprint format string
 
 ###############
@@ -61,6 +63,9 @@ class ScopusBackupController:
     def select_all_publications(self):
         return self.backup_model.select_all()
 
+    def wipe(self):
+        self.backup_model.wipe()
+
     def save(self):
         self.backup_model.save()
 
@@ -94,6 +99,9 @@ class ScopusCacheController:
     def save(self):
         self.cache_model.save()
 
+    def wipe(self):
+        self.cache_model.wipe()
+
 ##########
 # Models #
 ##########
@@ -107,11 +115,11 @@ class ScopusPickleCacheModel(PublicationPersistencyInterface):
 
         self.path = pathlib.Path(self.path_string)
 
-        self.content = self.load
+        self.content = self.load()
 
     def load(self):
-        with self.path.open(mode='r') as file:
-            content = json.load(file)
+        with self.path.open(mode='rb') as file:
+            content = pickle.load(file)
         return content
 
     def insert(self, publication):
@@ -122,11 +130,19 @@ class ScopusPickleCacheModel(PublicationPersistencyInterface):
             return self.content[scopus_id]
 
     def select_all(self):
-        return list(self.content.values())
+        publication_list = []
+        for key in self.content.keys():
+            publication = self.content[key]
+            publication_list.append(publication)
+        return publication_list
+
+    def wipe(self):
+        self.content = {}
+        self.save()
 
     def save(self):
         with self.path.open(mode="wb+") as file:
-            json.dump(self.content, file)
+            pickle.dump(self.content, file)
 
 
 class ScopusBackupPublicationModel(PublicationPersistencyInterface):
@@ -145,15 +161,15 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
 
         # Turning the creator ScopusAuthor object into a json string
         creator_dict = to_dict(publication.creator)
-        creator_json_string = json.dumps(creator_dict)
+        creator_json_string = json.dumps(creator_dict).replace('"', "'")
 
         # Turning the authors list, list of ScopusAuthor objects into a json string
         author_dict_list = to_dict(publication.authors)
-        authors_json_string = json.dumps(author_dict_list)
+        authors_json_string = json.dumps(author_dict_list).replace('"', "'")
 
         # Turning the keywords list and the citations list of str/int into a json object
-        keywords_json_string = json.dumps(publication.keywords)
-        citations_json_string = json.dumps(publication.citations)
+        keywords_json_string = json.dumps(publication.keywords).replace('"', "'")
+        citations_json_string = json.dumps(publication.citations).replace('"', "'")
 
         sql = (
             'INSERT IGNORE INTO '
@@ -164,7 +180,6 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
             'creator, '
             'title, '
             'description, '
-            'citation_count, '
             'journal, '
             'volume, '
             'date, '
@@ -178,7 +193,6 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
             '"{creator}", '
             '"{title}", '
             '"{description}", '
-            '{citation_count}, '
             '"{journal}", '
             '"{volume}", '
             '"{date}", '
@@ -193,7 +207,6 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
             creator=creator_json_string,
             title=publication.title,
             description=publication.description,
-            citation_count=publication.citation_count,
             journal=publication.journal,
             volume=publication.volume,
             date=publication.date,
@@ -228,7 +241,7 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
 
         row_list = self.database_access.select(sql)
 
-        if len(row_list != 0):
+        if len(row_list) != 0:
             row = row_list[0]
 
             scopus_id = row[0]
@@ -245,13 +258,14 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
             creator = from_dict(creator_dict)
 
             authors_json_string = row[9].replace("'", '"')
+            print(authors_json_string)
             author_dict_list = json.loads(authors_json_string)
             author_list = from_dict(author_dict_list)
 
-            keywords_json_string = row[10]
+            keywords_json_string = row[10].replace("'", '"')
             keywords_list = json.loads(keywords_json_string)
 
-            citations_json_string = row[11]
+            citations_json_string = row[11].replace("'", '"')
             citations_list = json.loads(citations_json_string)
 
             publication = ScopusPublication(
@@ -297,3 +311,7 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
             scopus_id = row[0]
             scopus_id_list.append(scopus_id)
         return scopus_id_list
+
+    def wipe(self):
+        sql = "TRUNCATE publications"
+        self.execute(sql)

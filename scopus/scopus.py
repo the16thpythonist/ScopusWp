@@ -109,6 +109,7 @@ class ScopusAffiliationController(ScopusBaseController):
         :param affiliation_id: The int affiliation id for which to get the info
         :return: The ScopusAffiliation object built from the scopus db info
         """
+        self.logger.info('AFFILIATION REQUEST FOR {}'.format(affiliation_id))
         # Requesting the affiliation retrieval and getting the response dict
         response = self.request_affiliation_retrieval(affiliation_id)
         response_dict = self._get_response_dict(response)
@@ -238,6 +239,7 @@ class ScopusAuthorController(ScopusBaseController):
         self.current_author_id = None
 
     def get_author(self, author_id):
+        self.logger.info('AUTHOR REQUEST FOR "{}"'.format(author_id))
         # Setting the currently processed author id, for debugging and logging
         self.current_author_id = author_id
 
@@ -501,6 +503,7 @@ class ScopusPublicationController(ScopusBaseController):
         return response
 
     def get_publication(self, scopus_id):
+        self.logger.info('PUBLICATION REQUEST FOR "{}"'.format(scopus_id))
         # Setting the scopus id, that is being processed at the moment by the controller for the logging purpose
         self.current_scopus_id = scopus_id
 
@@ -772,9 +775,9 @@ class ScopusController:
     """
     def __init__(self):
 
-        self.publication_controller = ScopusPublicationController
-        self.author_controller = ScopusAuthorController
-        self.affiliation_controller = ScopusAffiliationController
+        self.publication_controller = ScopusPublicationController()
+        self.author_controller = ScopusAuthorController()
+        self.affiliation_controller = ScopusAffiliationController()
 
     def get_publication(self, scopus_id):
         """
@@ -795,7 +798,8 @@ class ScopusController:
         publication_list = []
         for scopus_id in scopus_id_list:
             publication = self.get_publication(scopus_id)
-            publication_list.append(publication)
+            if publication.title != "":
+                publication_list.append(publication)
 
         return publication_list
 

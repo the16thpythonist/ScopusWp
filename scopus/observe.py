@@ -125,7 +125,7 @@ class AuthorObservationModel:
             if section == 'DEFAULT':
                 continue
 
-            sub_dict = dict(section)
+            sub_dict = dict(self.config[section])
 
             # Getting the author observation
             author_observation = self._get_author_observation(sub_dict)
@@ -137,7 +137,7 @@ class AuthorObservationModel:
         return content_dict, author_observation_list
 
     @staticmethod
-    def _get_author_observation(self, sub_dict):
+    def _get_author_observation(sub_dict):
 
         scopus_ids_json_string = sub_dict['ids']
         scopus_ids = json.loads(scopus_ids_json_string)

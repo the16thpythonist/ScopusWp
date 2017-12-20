@@ -1,4 +1,5 @@
 import json
+from unidecode import unidecode
 
 # TODO: Make the to_dict and from_dict accept lists
 
@@ -14,7 +15,7 @@ def to_dict(obj):
     :param obj: The scopus data type, that converts into a dict
     :return: a dict object built from the data of the given object
     """
-    if isinstance(obj, DictionaryConversionInterface):
+    if issubclass(obj.__class__, DictionaryConversionInterface):
         return obj.to_dict()
     elif isinstance(obj, list):
         dict_list = []
@@ -88,7 +89,7 @@ class DictionaryConversionInterface:
         raise NotImplementedError()
 
 
-class ScopusPublication(ScopusIdentifierInterface):
+class ScopusPublication(ScopusIdentifierInterface, DictionaryConversionInterface):
     """
     Object, that represents a publication, that was retrieved from the Scopus database.
     """
@@ -96,17 +97,18 @@ class ScopusPublication(ScopusIdentifierInterface):
                  keyword_list, journal, volume):
         # Init the interfaces
         # ScopusIdentifierInterface.__int__(self)
+        DictionaryConversionInterface.__init__(self)
 
         self.id = scopus_id
         self.eid = eid
         self.doi = doi
-        self.title = title
-        self.description = description
+        self.title = unidecode(title).replace('"', "'")
+        self.description = unidecode(description).replace('"', "'")
         self.date = date
         self.creator = creator
         self.authors = author_list
         self.citations = citation_list
-        self.keywords = keyword_list
+        self.keywords = list(map(unidecode, keyword_list))
         self.journal = journal
         self.volume = volume
 
@@ -235,7 +237,7 @@ class ScopusPublication(ScopusIdentifierInterface):
             raise TypeError(error_message)
 
 
-class ScopusAuthor(ScopusIdentifierInterface):
+class ScopusAuthor(ScopusIdentifierInterface, DictionaryConversionInterface):
     """
     The representation of the Author data saved with a publication, that was retrieved from the scopus database.
 
@@ -248,10 +250,11 @@ class ScopusAuthor(ScopusIdentifierInterface):
     def __init__(self, first_name, last_name, id, affiliation_list):
         # Init the interface
         ScopusIdentifierInterface.__init__(self)
+        DictionaryConversionInterface.__init__(self)
 
         self.id = id
-        self.first_name = first_name
-        self.last_name = last_name
+        self.first_name = first_name.replace("'", "")
+        self.last_name = last_name.replace("'", "")
         self.id = id
         self.affiliations = affiliation_list
 
@@ -291,7 +294,7 @@ class ScopusAuthor(ScopusIdentifierInterface):
             'id': self.id,
             'first_name': self.first_name,
             'last_name': self.last_name,
-            'affiliations': json.dumps(self.affiliations)
+            'affiliations': self.affiliations
         }
         return dictionary
 
@@ -307,8 +310,8 @@ class ScopusAuthor(ScopusIdentifierInterface):
             author = ScopusAuthor(
                 dictionary['first_name'],
                 dictionary['last_name'],
-                dictionary['id'],
-                json.loads(dictionary['affiliations'])
+                int(dictionary['id']),
+                dictionary['affiliations']
             )
             return author
         else:

@@ -6,6 +6,8 @@ from ScopusWp.scopus.persistency import ScopusBackupController, ScopusCacheContr
 
 from ScopusWp.scopus.scopus import ScopusController
 
+# TODO: Implement massive logging
+
 
 class ScopusTopController:
 
@@ -66,8 +68,11 @@ class ScopusTopController:
     def select_publication_backup(self, scopus_id):
         return self.backup_controller.select_publication(scopus_id)
 
-    def select_multiple_publication_backup(self, scopus_id_list):
+    def select_multiple_publications_backup(self, scopus_id_list):
         return self.backup_controller.select_multiple_publications(scopus_id_list)
+
+    def select_all_publications_backup(self):
+        return self.backup_controller.select_all_publications()
 
     def insert_publication_backup(self, publication):
         self.backup_controller.insert_publication(publication)
@@ -82,8 +87,11 @@ class ScopusTopController:
     def select_publication_cache(self, scopus_id):
         return self.cache_controller.select_publication(scopus_id)
 
-    def select_multiple_publication_cache(self, scopus_id_list):
+    def select_multiple_publications_cache(self, scopus_id_list):
         return self.cache_controller.select_multiple_publications(scopus_id_list)
+
+    def select_all_publications_cache(self):
+        return self.cache_controller.select_all_publications()
 
     def insert_publication_cache(self, publication):
         self.cache_controller.insert_publication(publication)

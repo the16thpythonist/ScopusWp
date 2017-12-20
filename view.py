@@ -1,6 +1,10 @@
 import datetime
+import tabulate
+import textwrap
 
 from ScopusWp.data import Publication
+
+
 
 
 def _author_index_name(author_tuple):
@@ -137,3 +141,111 @@ class PublicationWordpressPostView:
 
         authors_string = ''.join(author_string_list)
         return authors_string
+
+
+class ScopusPublicationTableView:
+
+    def __init__(self, publication_list, max_length=40, observed_authors=[]):
+        self.publications = publication_list
+
+        self.observed_authors = observed_authors
+        self.observing = len(self.observed_authors) != 0
+
+        self.max_length = max_length
+
+    def get_string(self):
+        table_list = [['SCOPUS ID', 'TITLE', 'DOI', 'EID', 'AUTHOR IDS', 'AFFILIATION IDS']]
+        for publication in self.publications:
+            publication_row_list = self._get_row_list(publication)
+            table_list.append(publication_row_list)
+
+        table_string = tabulate.tabulate(table_list, tablefmt='fancy_grid')
+        return table_string
+
+    def __str__(self):
+        return self.get_string()
+
+    def _get_row_list(self, publication):
+        """
+        Gets the a ordered list of items (scopus id, title , doi, eid, authors, affiliations) that will be used as a
+        row in the tabular display of the view.
+
+        :param publication: The publication for which to create the row list
+        :return: The list representing the row in the table
+        """
+        # The publication id
+        scopus_id_string = str(int(publication))
+
+        # The first 20~ characters of the title for easier identification
+        if len(publication.title) < self.max_length:
+            title_string = publication.title
+        else:
+            title_string = '{}...'.format(publication.title[:self.max_length])
+
+        # The doi and the eid of the paper
+        doi_string = publication.doi
+        eid_string = publication.eid
+
+        # All the authors of the publication
+        authors_string = self._get_authors_string(publication)
+
+        # The affiliations of the publications
+        affiliations_string = self._get_affiliations_string(publication)
+
+        row_list = [
+            scopus_id_string,
+            title_string,
+            eid_string,
+            doi_string,
+            authors_string,
+            affiliations_string
+        ]
+
+        return row_list
+
+    def _get_authors_string(self, publication):
+        """
+        Gets the string to be used in the column 'authors' for the row of the given publication.
+        If there are authors to be observed only uses the authors of the publication, that are part of the observed
+        authors.
+
+        :param publication: The publication for whose row to create the authors string
+        :return: The string to be displayed in the authors colum of th row for the given publication
+        """
+        # In case there is a author list specified to observe
+        if self.observing:
+            author_id_list = []
+            for author in publication.authors:
+                if author.id in self.observed_authors:
+                    author_id_list.append(str(author.id))
+        else:
+            author_id_list = list(map(lambda x: str(x.id), publication.authors))
+
+        authors_string = ', '.join(author_id_list)
+        authors_string = textwrap.fill(authors_string, self.max_length)
+
+        return authors_string
+
+    def _get_affiliations_string(self, publication):
+        """
+        Gets the string to be used for the column 'affiliation ids' for the row of the given publication.
+        If there are authors to observe, only lists the affiliations from those authors, otherwise all
+
+        :param publication: The publication for whose row to create the string to display
+        :return: The string to be displayed in the affiliations column of the row for the given publication
+        """
+        affiliation_id_list = []
+        for author in publication.authors:
+            if self.observing:
+                if author.id in self.observed_authors:
+                    difference = list(set(author.affiliations) - set(affiliation_id_list))
+                    affiliation_id_list += difference
+            else:
+                difference = list(set(author.affiliations) - set(affiliation_id_list))
+                affiliation_id_list += difference
+
+        # The affiliations of the publications
+        affiliations_string = ', '.join(publication.affiliations)
+        affiliations_string = textwrap.fill(affiliations_string, self.max_length)
+
+        return affiliations_string
