@@ -1,181 +1,117 @@
-from ScopusWp.config import init_logging
-from ScopusWp.controllers import ScopusController, WordpressController, ScopusWpController
-from ScopusWp.repr import Publication
-
-from ScopusWp.controllers import ScopusPublicationController, ScopusAuthorController
-
 from pprint import pprint
 
-import json
-import pickle
-
+from ScopusWp.config import init_logging
 from ScopusWp.config import PATH
 
-from ScopusWp.views import PublicationTableView
-
-import warnings
+from ScopusWp.view import ScopusPublicationTableView
 
 init_logging()
-"""
-scopus_controller = ScopusController()
-
-author = scopus_controller.get_author(35313939900)
-print(author.index_name)
-
-publication_id = author.publications[0]
-publication = scopus_controller.get_publication(publication_id)
-print(publication.title)
-
-author_list = scopus_controller.get_author(publication.authors)
-
-wordpress_controller = WordpressController()
-wpid = wordpress_controller.post_publication(publication, author_list)
-
-wordpress_controller.post_citation(wpid, publication)
-print(wpid)
-"""
 
 
-
-# response = controller.request_abstract_retrieval(84891274054)
-# response = controller.request_citations_search('2-s2.0-84891274054')
-
-# controller2 = ScopusAuthorController()
-
-"""
-controller3 = ScopusWpController()
-publication = controller3.get_publication(84891274054)
-author = controller3.get_author(35519411500)
-publication_list = []
-for pid in author.publications:
-    publication = controller3.get_publication(pid)
-    controller3.print_publication_info(publication)
-"""
-
-# TODO: Build all the stored pubs new because json encoding fails with some names
-def relevant_test():
-    warnings.filterwarnings('ignore')
+def test_loading_scopus_cache(author_id=56950893700):
+    from ScopusWp.scopus.main import ScopusTopController
 
     string = (
-        'This divides the publications by checking if one of the authors is affiliated '
-        'with the KIT or KIT campus north:\n\n'
+        '############################\n'
+        '# TESTING THE SCOPUS CACHE #\n'
+        '############################\n'
+        'Testing the scopus cache by downloading the publications of the author {author_id} and then inserting them \n'
+        'into the cache.\n'
     )
     print(string)
+    controller = ScopusTopController()
+    author_profile = controller.scopus_controller.get_author_profile(author_id)
+    print('[!] Getting the publications from the scopus database...\n')
+    publications = controller.scopus_controller.get_author_publications(author_profile)
+    print('[i] These publications have been fetched\n')
+    table_view = ScopusPublicationTableView(publications)
+    print(str(table_view))
+    print('[!] Wiping the cache clean...\n')
+    controller.cache_controller.wipe()
+    print('[!] Inserting into the cache...\n')
+    controller.cache_controller.insert_multiple_publications(publications)
+    print("[!] Saving the cache...\n")
+    controller.cache_controller.save()
+    print('[!] Loading all the data from the cache...\n')
+    publications = controller.select_all_publications_cache()
+    print('[i] These publications have been loaded from the cache:\n')
+    table_view = ScopusPublicationTableView(publications)
+    print(str(table_view))
 
-    controller = ScopusWpController()
 
-    relevant, irrelevant = controller.get_relevant_publications()
+def test_scopus_backup_database(author_id=56950893700):
+    from ScopusWp.scopus.main import ScopusTopController
 
     string = (
-        '####################################\n'
-        '# ALL THE IRRELEVANT PUBLICATIONS: #\n'
-        '####################################\n'
+        '######################################\n'
+        '# TESTING THE SCOPUS BACKUP DATABASE #\n'
+        '######################################\n'
+        'Testing the database by fetching all the publications of the author "{}" from the scopus website by requests\n'
+        'Then Wiping the database, inserting the new data, loading this data again and then displaying it\n'
     )
     print(string)
+    controller = ScopusTopController()
+    print('[!] Requesting all the publications from the scopus website...\n')
+    author_profile = controller.scopus_controller.get_author_profile(author_id)
+    publications = controller.scopus_controller.get_multiple_publications(author_profile.publications)
+    print('[i] These publications have been fetched from the scopus website:\n')
+    table_view = ScopusPublicationTableView(publications)
+    print(str(table_view))
+    print('[!] Wiping the database clean first...\n')
+    controller.backup_controller.wipe()
+    print('[!] Inserting the new publications into the database...\n')
+    controller.backup_controller.insert_multiple_publications(publications)
+    print('[!] Fetching all the publications from the database...\n')
+    publications = controller.backup_controller.select_all_publications()
+    print('[i] These publications have been fetched from the backup database:\n')
+    table_view = ScopusPublicationTableView(publications)
+    print(str(table_view))
 
-    for p in irrelevant:
-        controller.print_publication_info(p)
+
+def test_wordpress(author_id=56950893700):
+    from ScopusWp.scopus.main import ScopusTopController
+    from ScopusWp.wordpress import WordpressPublicationPostController
+    from ScopusWp.reference import ReferenceController
 
     string = (
-        '##################################\n'
-        '# ALL THE RELEVANT PUBLICATIONS: #\n'
-        '##################################\n'
+        '#################################################\n'
+        '# TESTING THE WORDPRESS PUBLICATION POST SYSTEM #\n'
+        '#################################################\n'
+        '\n'
+        'Testing by doing the following:\n'
+        '+ Getting all the publications of the author "{}" from the scopus website\n'
+        '+ Turning those scopus publications into generalized publication via the reference system\n'
+        '+ Posting those publications to the website\n'
     )
     print(string)
+    scopus_controller = ScopusTopController()
+    print('[!] Requesting all the publications from the scopus website...\n')
+    author_profile = scopus_controller.scopus_controller.get_author_profile(author_id)
+    scopus_publications = scopus_controller.scopus_controller.get_multiple_publications(author_profile.publications)
+    print('[i] These publications have been fetched from the scopus website:\n')
+    table_view = ScopusPublicationTableView(scopus_publications)
+    print(str(table_view))
+    print('[!] Turning the scopus publications into generalized publications through the reference system...\n')
+    reference_controller = ReferenceController()
+    publications = []
+    for scopus_publication in scopus_publications:
+        publication = reference_controller.publication_from_scopus(scopus_publication)
+        publications.append(publication)
+    print('[i] These are the publication objects created from the scopus publication:\n')
+    print(publications)
+    print('[!] Posting the publications to the website...\n')
+    wordpress_ids = []
+    wordpress_controller = WordpressPublicationPostController()
+    for publication in publications:
+        wordpress_id = wordpress_controller.post_publication(publication, [])
+        wordpress_ids.append(wordpress_id)
+    print('[!] All the publications are posted!')
+    print('[i] The posts have the following ids:')
+    print(wordpress_ids)
+    input('[?] Press any button to continue and delete the posts')
+    print('[!] Deleting the posts...\n')
+    for wordpress_id in wordpress_ids:
+        wordpress_controller.delete_post(wordpress_id)
+    print('[!] Finished deleting!')
 
-    for p in relevant:
-        controller.print_publication_info(p)
-
-
-def test_affiliation(affid):
-    controller = ScopusWpController()
-    response = controller.scopus_affiliation_controller.request_affiliation_retrieval(affid)
-    d = json.loads(response.text)
-    pprint(d)
-
-
-def test_table():
-    from ScopusWp.views import PublicationObservedView
-
-    controller = ScopusWpController()
-    publications1, publications2 = controller.get_relevant_publications()
-    publications = publications1 + publications2
-
-    controller.build_publications(publications)
-    view = PublicationObservedView(publications, controller.observed_author_model)
-    string = view.get_table_string()
-    print('\n THE LIST OF ALL THE AFFILIATION IDS ANY ONE OF THE AUTHORS HAD IN THE PAST')
-    print(string)
-    pprint(view.affiliations)
-
-
-def test_affil_table():
-    from ScopusWp.views import AuthorsAffiliationsView
-
-    controller = ScopusWpController()
-    authors = controller.all_author_backup()
-    publications = controller.all_publication_backup()
-
-    controller.print_author_affiliations(authors, publications)
-
-
-def test_cache():
-    controller = ScopusWpController()
-    publications = controller.all_publication_backup()
-
-    with open('{}/{}'.format(PATH, 'cache.pickle'), 'wb') as file:
-        pickle.dump(publications, file)
-
-
-def build_all():
-    controller = ScopusWpController()
-    author_list = controller.get_observed_authors()
-    publication_list = []
-    for author in author_list:
-        _temp = []
-        for scopus_id in author.publications:
-            pub = controller.get_publication(scopus_id)
-            _temp.append(pub)
-        publication_list += _temp
-
-    controller.build_publications(publication_list)
-    controller.close()
-
-    controller.build_publications(publication_list)
-
-
-def test_observed():
-    from ScopusWp.models import ObservedAuthorsModel
-    from ScopusWp.views import PublicationTableView
-
-    controller = ScopusWpController()
-    model = ObservedAuthorsModel()
-
-    publications = controller.all_publication_backup()
-    (
-        w,
-        b,
-        r
-    ) = model.filter(publications)
-
-    v1 = PublicationTableView(w)
-    print(v1.get_string())
-    v2 = PublicationTableView(b)
-    print(v2.get_string())
-    v3 = PublicationTableView(r)
-    print(v3.get_string())
-
-
-def test_new_publications():
-    controller = ScopusWpController()
-    controller.update_publications_wordpress()
-    controller.close()
-
-
-def test_new_citations():
-    controller = ScopusWpController()
-    controller.update_citations_wordpress()
-    controller.close()
-
-
-test_new_publications()
+test_wordpress()

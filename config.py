@@ -19,7 +19,7 @@ def _format_log_file_name(datetime_object, extension_string):
     # Formatting the string of the date
     date_string = _format_date(datetime_object)
     # Joining the date string with the string extension
-    file_name_string = '-'.join([date_string, extension_string])
+    file_name_string = '-'.join([date_string, 'log'])
     file_name_string += '.txt'
 
     return file_name_string

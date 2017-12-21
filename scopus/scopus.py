@@ -1,72 +1,18 @@
-"""
-DEPENDENCIES tabulate, SQLldb
-"""
+from ScopusWp.scopus.data import ScopusPublication, ScopusAuthor, ScopusAffiliation, ScopusAuthorProfile
 
 import ScopusWp.config as cfg
 
-from wordpress_xmlrpc import Client
-from wordpress_xmlrpc import WordPressPost, WordPressComment
-from wordpress_xmlrpc.methods.posts import NewPost, EditPost, GetPost
-from wordpress_xmlrpc.methods.comments import NewComment, EditComment
-
-from ScopusWp.repr import Publication
-from ScopusWp.repr import Author, AuthorProfile
-from ScopusWp.repr import Affiliation
-
-from ScopusWp.models import ObservedAuthorsModel, ScopusBackupModel, CacheModel, WordpressReferenceModel
-
-from ScopusWp.processors import PublicationSetSubtractionProcessor, PostKeywordProcessor
-from ScopusWp.processors import PublicationCitationDifferenceProcessor
-
-from ScopusWp.views import PublicationWordpressPostView, PublicationWordpressCitationView
-from ScopusWp.views import AuthorSimpleView, AffiliationSimpleView, PublicationSimpleView
-from ScopusWp.views import AuthorsAffiliationsView, AffiliationTableView
-from ScopusWp.views import PublicationTableView
-
 import logging
 import urllib.parse as urlparse
-import os
 import requests
 import json
-
-from unidecode import unidecode
-
-
-from pprint import pprint
+import os
 
 
-class KITOpenController:
-
-    def __init__(self):
-        # Getting the config instance for the project
-        self.config = cfg.Config.get_instance()
-
-        # Getting the logger for the the scopus part of the project
-        scopus_logger_id = cfg.SCOPUS_LOGGING_EXTENSION
-        self.logger = logging.getLogger(scopus_logger_id)
-
-        self.url_base = self.config['KITOPEN']['url']
-
-        self.query_base = {
-            'referencing': 'all',
-            'external_publications': 'all',
-            'lang': 'de',
-            'format': 'csl_json',
-            'style': 'kit-3lines-title_b-authors-other'
-        }
-
-    def request_search(self, query):
-        total_query = query.update(self.query_base)
-        # Preparing the url to which to send the GET request
-        url = '{}?{}'.format(self.url_base, urlparse.urlencode(total_query))
-        # Sending the url request and fetching the response
-        response = requests.get(url)
-
-        return response
-
-
-class ScopusController:
-
+class ScopusBaseController:
+    """
+    Abstract base class for all the specific scopus controllers.
+    """
     def __init__(self):
         # Getting the config instance for the project
         self.config = cfg.Config.get_instance()
@@ -131,6 +77,12 @@ class ScopusController:
         return scopus_id
 
     def _extract_search_response_dict(self, response_dict):
+        """
+        Given the response dict for a scopus search, gives the entry list.
+
+        :param response_dict: The response dict from a search result.
+        :return: list of entry dicts
+        """
         entry_list = self._get_dict_item(response_dict, 'entry', [])
 
         return entry_list
@@ -138,16 +90,26 @@ class ScopusController:
     def _get_dict_item(self, dictionary, key, default):
         raise NotImplementedError()
 
+    def _log(self, string):
+        raise NotImplementedError()
 
-class ScopusAffiliationController(ScopusController):
+
+class ScopusAffiliationController(ScopusBaseController):
 
     def __init__(self):
-        ScopusController.__init__(self)
+        ScopusBaseController.__init__(self)
 
         self.current_affiliation_id = None
 
     def get_affiliation(self, affiliation_id):
+        """
+        If given the affiliation id sends a affiliation retrieval request to scopus and builds a ScopusAffiliation
+        object from the response.
 
+        :param affiliation_id: The int affiliation id for which to get the info
+        :return: The ScopusAffiliation object built from the scopus db info
+        """
+        self.logger.info('AFFILIATION REQUEST FOR {}'.format(affiliation_id))
         # Requesting the affiliation retrieval and getting the response dict
         response = self.request_affiliation_retrieval(affiliation_id)
         response_dict = self._get_response_dict(response)
@@ -160,7 +122,7 @@ class ScopusAffiliationController(ScopusController):
         ) = self._extract_affiliation_retrieval(response_dict)
 
         # Creating the new affiliation representation object
-        affiliation = Affiliation(
+        affiliation = ScopusAffiliation(
             affiliation_id,
             country,
             city,
@@ -170,6 +132,12 @@ class ScopusAffiliationController(ScopusController):
         return affiliation
 
     def request_affiliation_retrieval(self, affiliation_id):
+        """
+        Sends a affiliation retrieval request to the scopus database.
+
+        :param affiliation_id: The affiliation id of which to retrieve the data
+        :return: The requests.Response object
+        """
         query = {
             'field': 'affiliation-name,city,country'
         }
@@ -183,6 +151,13 @@ class ScopusAffiliationController(ScopusController):
         return response
 
     def _extract_affiliation_retrieval(self, response_dict):
+        """
+        Extracts the response dict of a affiliation retrieval into the coredata dict, the country, city and institute
+        name of the affiliation.
+
+        :param response_dict: The dict for the response
+        :return: void
+        """
         country = self._get_dict_item(response_dict, 'country', '')
         city = self._get_dict_item(response_dict, 'city', '')
         institute = self._get_dict_item(response_dict, 'affiliation-name', '')
@@ -191,6 +166,14 @@ class ScopusAffiliationController(ScopusController):
         return coredata_dict, country, city, institute
 
     def _get_response_dict(self, response):
+        """
+        Gets the dict, that contains all the relevant data from the given requests response object.
+
+        First json loads the requests response object into a dict and then gets the sub dict, that actually contains
+        the data, returns that.
+        :param response: The requests Response object
+        :return: dict
+        """
         # Turning the json response text from the requests response into a dict
         try:
             json_dict = json.loads(response.text)
@@ -222,6 +205,16 @@ class ScopusAffiliationController(ScopusController):
         return response_dict
 
     def _get_dict_item(self, dictionary, key, default):
+        """
+        Gets the value of the given dict for the given key. If there is a complication returns the value default
+        instead.
+
+        Also this method logs, whenever a complication occurs.
+        :param dictionary: The dict for which to attempt to call the key on
+        :param key: The key which to use on the dict
+        :param default: The default value, that will be returned, when there is a complication with the dict/key
+        :return:
+        """
         if isinstance(dictionary, dict) and key in dictionary.keys():
             return dictionary[key]
         else:
@@ -234,15 +227,19 @@ class ScopusAffiliationController(ScopusController):
             # Returning the default value, so that the program can still run in case there was no item in the dict
             return default
 
+    def _log(self, string):
+        pass
 
-class ScopusAuthorController(ScopusController):
+
+class ScopusAuthorController(ScopusBaseController):
 
     def __init__(self):
-        ScopusController.__init__(self)
+        ScopusBaseController.__init__(self)
 
         self.current_author_id = None
 
     def get_author(self, author_id):
+        self.logger.info('AUTHOR REQUEST FOR "{}"'.format(author_id))
         # Setting the currently processed author id, for debugging and logging
         self.current_author_id = author_id
 
@@ -256,7 +253,7 @@ class ScopusAuthorController(ScopusController):
             name_dict,
             affiliation_dict,
             h_index
-        ) = self._extract_author_response_dict(response_dict)
+        ) = self._extract_author_retrieval(response_dict)
 
         # Getting the coredata
         document_count = self._get_coredata(coredata_dict)
@@ -275,18 +272,14 @@ class ScopusAuthorController(ScopusController):
         # Getting the list of scopus ids for all of the authors publications
         publication_id_list = self.get_publications(author_id)
 
-        author_profile = AuthorProfile(
+        author_profile = ScopusAuthorProfile(
             author_id,
             first_name,
             last_name,
             h_index,
-            publication_id_list,
             0,
             document_count,
-            affiliation_id,
-            country,
-            city,
-            institute
+            publication_id_list
         )
 
         return author_profile
@@ -364,6 +357,12 @@ class ScopusAuthorController(ScopusController):
         return response
 
     def _get_coredata(self, coredata_dict):
+        """
+        Given the coredata dict, this method will extract the document count from it
+
+        :param coredata_dict: The coredata dict from the response dict
+        :return: int
+        """
         document_count = self._get_dict_item(coredata_dict, 'document-count', 0)
         return document_count
 
@@ -376,13 +375,25 @@ class ScopusAuthorController(ScopusController):
         return affiliation_id, affiliation_country, affiliation_city, affiliation_institute
 
     def _get_name_data(self, name_dict):
+        """
+        Given the name dict of the response dict, returns first name and last name of author
+
+        :param name_dict: The dict containing the name data from the response dict
+        :return:
+        """
         first_name = self._get_dict_item(name_dict, 'given-name', '')
         last_name = self._get_dict_item(name_dict, 'surname', '')
 
         return first_name, last_name
 
-    def _extract_author_response_dict(self, response_dict):
+    def _extract_author_retrieval(self, response_dict):
+        """
+        extracts the response dict from the author retrieval and returns the coredata dict, the name dict, the
+        affiliation dict and the h index of the author.
 
+        :param response_dict: The response dict of the author retrieval request
+        :return: dict, dict, dict, int
+        """
         affiliation_dict = self._get_dict_item(response_dict, 'affiliation-current', {})
         coredata_dict = self._get_dict_item(response_dict, 'coredata', {})
         name_dict = self._get_dict_item(response_dict, 'preferred-name', {})
@@ -442,10 +453,10 @@ class ScopusAuthorController(ScopusController):
             return default
 
 
-class ScopusPublicationController(ScopusController):
+class ScopusPublicationController(ScopusBaseController):
 
     def __init__(self):
-        ScopusController.__init__(self)
+        ScopusBaseController.__init__(self)
 
         self.current_scopus_id = None
 
@@ -492,6 +503,7 @@ class ScopusPublicationController(ScopusController):
         return response
 
     def get_publication(self, scopus_id):
+        self.logger.info('PUBLICATION REQUEST FOR "{}"'.format(scopus_id))
         # Setting the scopus id, that is being processed at the moment by the controller for the logging purpose
         self.current_scopus_id = scopus_id
 
@@ -505,7 +517,7 @@ class ScopusPublicationController(ScopusController):
             authors_entry_list,
             keywords_entry_list,
             affiliation_entry_list
-        ) = self._extract_abstract_response_dict(response_dict)
+        ) = self._extract_abstract_retrieval(response_dict)
 
         # Getting the coredata information
         (
@@ -530,21 +542,19 @@ class ScopusPublicationController(ScopusController):
         citation_list = self.get_citations(eid)
 
         # Creating the publication object from the data
-        publication = Publication(
+        publication = ScopusPublication(
             scopus_id,
             eid,
             doi,
+            title,
+            description,
+            date,
+            creator,
             author_list,
             citation_list,
             keyword_list,
-            creator,
-            title,
-            description,
-            citation_count,
             journal,
-            volume,
-            date,
-            []
+            volume
         )
 
         return publication
@@ -663,10 +673,10 @@ class ScopusPublicationController(ScopusController):
                 affiliation_list.append(affiliation_id)
 
         # Creating the Author object from the extracted values
-        author = Author(author_id, first_name, last_name, affiliation_list)
+        author = ScopusAuthor(first_name, last_name, author_id, affiliation_list)
         return author
 
-    def _extract_abstract_response_dict(self, response_dict):
+    def _extract_abstract_retrieval(self, response_dict):
         """
         Extracts the response dict for a abstract retrieval response into its most important sub-data structures,
         which are the dict for the coredata to the publication, the list containing the info about all the authors,
@@ -759,469 +769,123 @@ class ScopusPublicationController(ScopusController):
             return default
 
 
-class WordpressController:
-
-    def __init__(self):
-        # Getting the config instance for the project
-        self.config = cfg.Config.get_instance()
-
-        # Getting the logger for the the scopus part of the project
-        scopus_logger_id = cfg.SCOPUS_LOGGING_EXTENSION
-        self.logger = logging.getLogger(scopus_logger_id)
-
-        # Getting the url path to the xmlrpc.php file from the config file
-        self.url = self.config['WORDPRESS']['url']
-        # Getting the username and the password for the access to the wordpress api from the config file
-        self.username = self.config['WORDPRESS']['username']
-        self.password = self.config['WORDPRESS']['password']
-
-        # Creating the client object from the login data
-        self.client = Client(self.url, self.username, self.password)
-
-    def post_publication(self, publication, keywords):
-        # Creating the view specifically for the wordpress posts
-        wp_post_view = PublicationWordpressPostView(publication, keywords)
-
-        post = WordPressPost()
-
-        post.title = wp_post_view.get_title()
-        post.excerpt = wp_post_view.get_excerpt()
-        # post.date = wp_post_view.get_date()
-        post.slug = wp_post_view.get_slug()
-        post.content = wp_post_view.get_content()
-        post.date = wp_post_view.get_date()
-
-        post.id = self.client.call(NewPost(post))
-
-        post.terms_names = {
-            'category': wp_post_view.get_category_list(),
-            'post_tag': wp_post_view.get_tag_list()
-        }
-
-        post.post_status = 'publish'
-        post.comment_status = 'closed'
-
-        self.client.call(EditPost(post.id, post))
-
-        return post.id
-
-    def post_citation(self, wordpress_id, publications, multiple=False):
-
-        if isinstance(publications, list):
-            self.enable_comments(wordpress_id)
-            # In case there are no multiple post, if the one passed
-            comment_id_list = []
-            for publication in publications:
-                comment_id = self.post_citation(wordpress_id, publication, multiple=True)
-                comment_id_list.append(comment_id)
-
-            self.disable_comments(wordpress_id)
-
-        elif isinstance(publications, Publication):
-            # In case there are no multiple citations to be added, if its only the one passed post, then adding
-            # mod. the comment status of the post locally
-            if not multiple:
-                self.enable_comments(wordpress_id)
-
-            # Actually posting the comment
-            comment = WordPressComment()
-
-            wp_comment_view = PublicationWordpressCitationView(publications)
-
-            comment.content = wp_comment_view.get_content()
-
-            comment_id = self.client.call(NewComment(wordpress_id, comment))
-
-            # Changing the date of the comment, but only if there is a data specified for the publication
-            date_created = wp_comment_view.get_date()
-            if date_created is not None:
-                comment.date_created = date_created
-            self.client.call(EditComment(comment_id, comment))
-
-            if not multiple:
-                self.disable_comments(wordpress_id)
-
-            return comment_id
-
-    def enable_comments(self, wordpress_id):
-        # Getting the Post
-        post = self.client.call(GetPost(wordpress_id))
-
-        # Changing the comment status of the post to open
-        post.comment_status = 'open'
-
-        self.client.call(EditPost(wordpress_id, post))
-
-    def disable_comments(self, wordpress_id):
-        # Getting the post
-        post = self.client.call(GetPost(wordpress_id))
-
-        # Changing the comment status
-        post.comment_status = 'closed'
-
-        self.client.call(EditPost(wordpress_id, post))
-
-
-# TODO: when a list of publications is given dont work them all and than print, print after each other
-class ScopusWpController:
-
+class ScopusController:
+    """
+    The top controller for everything that has to do with requesting from the scopus database
+    """
     def __init__(self):
 
-        # Getting the config instance for the project
-        self.config = cfg.Config.get_instance()
+        self.publication_controller = ScopusPublicationController()
+        self.author_controller = ScopusAuthorController()
+        self.affiliation_controller = ScopusAffiliationController()
 
-        self.logger = logging.getLogger('CONTROLLER')
+    def get_publication(self, scopus_id):
+        """
+        Gets the ScopusPublication object to the scopus id from the scopus database
 
-        # Creating the controllers for the interfacing with the scopus database
-        self.scopus_publication_controller = ScopusPublicationController()
-        self.scopus_author_controller = ScopusAuthorController()
-        self.scopus_affiliation_controller = ScopusAffiliationController()
-        # Creating the wordpress controller
-        self.wordpress_controller = WordpressController()
+        :param scopus_id: The int id of the publication
+        :return: The ScopusPublication object, representing the publication
+        """
+        return self.publication_controller.get_publication(scopus_id)
 
-        self.observed_author_model = ObservedAuthorsModel()
-        self.cache_model = CacheModel()
-        self.wordpress_reference_model = WordpressReferenceModel()
-        self.backup_model = ScopusBackupModel()
+    def get_multiple_publications(self, scopus_id_list):
+        """
+        Gets a list of publication objects to a list of scopus ids.
 
-    def close(self):
-        self.backup_model.close()
+        :param scopus_id_list: The list of int scopus ids for which to retrieve the publication data
+        :return: A list of ScopusPublication objects
+        """
+        publication_list = []
+        for scopus_id in scopus_id_list:
+            publication = self.get_publication(scopus_id)
+            if publication.title != "":
+                publication_list.append(publication)
 
-    #####################
-    # TOP LEVEL METHODS #
-    #####################
+        return publication_list
 
-    def print_author_affiliations(self, author_list, publication_list):
-        info_string = (
-            'The following table contains the different affiliation ids that have occurred for the given authors \n'
-            'in the given test set of publications:\n'
-        )
-        print(info_string)
+    def get_author_profile(self, author_id):
+        """
+        The AuthorProfile object for a given author id.
 
-        # Getting the author affiliations view and printing the table, that displays the affiliations that have
-        # occurred for the different authors among the sample list of publications
-        author_affiliations_view = AuthorsAffiliationsView(author_list, publication_list)
-        author_affiliation_table_string = author_affiliations_view.get_string()
-        print(author_affiliation_table_string)
+        :param author_id: The int id of the author
+        :return: The ScopusAuthorProfile representing the author
+        """
+        return self.author_controller.get_author(author_id)
 
-        # Getting the list of all the occurred affiliations and printing the info for all of them
-        affiliation_id_list = author_affiliations_view.all_affiliations()
+    def get_multiple_author_profiles(self, author_id_list):
+        """
+        A list of author profiles to a list of author ids.
+
+        :param author_id_list: The list of int author ids for which to get the profiles
+        :return: A list of ScopusAuthorProfile objects
+        """
+        author_profile_list = []
+        for author_id in author_id_list:
+            author_profile = self.get_author_profile(author_id)
+            author_profile_list.append(author_profile)
+
+        return author_profile_list
+
+    def get_author_publications(self, author_profile):
+        """
+        A list of publication objects for the publications the given author has contributed to.
+
+        :param author_profile: The ScopusAuthorProfile object representing the author
+        :return: A list of ScopusPublication objects
+        """
+        return self.get_multiple_publications(author_profile.publications)
+
+    def get_citation_publications(self, publication):
+        """
+        A list of publications, that have cited the publication given.
+
+        :param publication: The publication of which the citing publications shall be gotten
+        :return: A list of ScopusPublications
+        """
+        return self.get_multiple_publications(publication.citations)
+
+    def get_publication_author_profiles(self, publication):
+        """
+        Gets the author profiles of all the authors, that have contributed to the given publication.
+
+        :param publication: ScopusPublication
+        :return: A list of ScopusAuthorProfile objects
+        """
+        author_profile_list = []
+        for author in publication.authors:
+            author_id = int(author)
+            author_profile = self.get_author_profile(author_id)
+            author_profile_list.append(author_profile)
+        return author_profile_list
+
+    def get_affiliation(self, affiliation_id):
+        """
+        The ScopusAffiliation data structure to the given affiliation id.
+
+        :param affiliation_id: the int id of the affiliation
+        :return: The ScopusAffiliation object
+        """
+        return self.affiliation_controller.get_affiliation(affiliation_id)
+
+    def get_multiple_affiliations(self, affiliation_id_list):
+        """
+        A list of affiliations to a list of affiliation ids.
+
+        :param affiliation_id_list: A list of affiliation ids
+        :return: A list of ScopusAffiliation objects
+        """
         affiliation_list = []
         for affiliation_id in affiliation_id_list:
             affiliation = self.get_affiliation(affiliation_id)
             affiliation_list.append(affiliation)
+        return affiliation_list
 
-        affiliation_table_view = AffiliationTableView(affiliation_list)
-        affiliation_table_string = affiliation_table_view.get_string()
-        print(affiliation_table_string)
-
-        # self.print_affiliations_info(affiliation_list)
-
-    def update_citations_wordpress(self):
-        cache_publications = self.all_publications_cache()
-        backup_publications = self.all_publication_backup()
-
-        # Getting the difference in citations
-        citation_difference_processor = PublicationCitationDifferenceProcessor(
-            backup_publications,
-            cache_publications,
-            self.scopus_publication_controller
-        )
-
-        for publication in backup_publications:
-            citation_publications = citation_difference_processor[publication]
-            self.post_citation(publication, citation_publications)
-
-    def update_publications_wordpress(self):
-        # Getting the new publications
-        new_publications = self.new_publications()
-
-        # Filtering the publications
-        (
-            whitelist_publications,
-            blacklist_publications,
-            remaining_publications
-        ) = self.filter_publications(new_publications)
-
-        # Updating the whitelist publications
-        for publication in whitelist_publications:
-            self.save_publication_backup(publication)
-            wordpress_id = self.post_publication(publication)
-            self.save_reference(publication, wordpress_id)
-
-            citation_list = []
-            for scopus_id in publication.citations:
-                citation_publication = self.scopus_publication_controller.get_publication(scopus_id) # type: Publication
-                if citation_publication.title != '':
-                    citation_list.append(citation_publication)
-
-            self.post_citation(publication, citation_list)
-
-    def new_publications(self):
-        # Getting all the publications from the backup database (which are the ones currently displayed on the website)
-        # and getting all the publications from the cache
-        cache_publications = self.all_publications_cache()
-        backup_publications = self.all_publication_backup()
-
-        # Getting the publications, that are in the cache, but not in the backup, those are the new ones
-        subtraction_processor = PublicationSetSubtractionProcessor(cache_publications, backup_publications)
-        new_publications = subtraction_processor.difference
-
-        return new_publications
-
-    ################################
-    # WORDPRESS CONTROLLER METHODS #
-    ################################
-
-    def post_publication(self, publication):
+    def get_publication_affiliations(self, publication):
         """
-        Actually posts the given üpublication to the connected wordpress site.
-        (Assembles the keywords list from the keywords given to the observed authors)
+        The list of ScopusAffiliations for a given publication.
 
-        :param publication: The publication to be posted as a post
-        :return: The int wordpress id of the resulting post
+        :param publication: The publication for which to get the affiliations
+        :return: a list of ScopusAffiliation objects
         """
-        # Creating the keywords list from the observed authors model and the publication
-        post_keyword_processor = PostKeywordProcessor(publication, self.observed_author_model)
-        keywords = post_keyword_processor.get_keywords()
+        return self.get_multiple_affiliations(publication.affiliations)
 
-        # Posting the publication post to the connected wordpress site and returning the wordpress id of the post
-        wordpress_id = self.wordpress_controller.post_publication(publication, keywords)
-        return wordpress_id
-
-    def post_citation(self, publication_base, publication_list_cited):
-        # Getting the wordpress id for the given publication from the reference database
-        wordpress_id = self.get_wordpress_id(publication_base)
-        self.wordpress_controller.post_citation(wordpress_id, publication_list_cited)
-
-    #######################################
-    # THE SCOPUS DATABASE REQUEST METHODS #
-    #######################################
-
-    def get_publication(self, scopus_id):
-        """
-        Gets a Publication object for the publication, identified by the given scopus id.
-        Uses the ScopusPublicationController to send an abstract retrieval request to the scopus server.
-
-        :param scopus_id: The scopus id, of which to get the info
-        :return: A Publication object containing all the relevant data of the requested publication
-        """
-        return self.scopus_publication_controller.get_publication(scopus_id)
-
-    def get_author(self, author_id):
-        """
-        Gets an AuthorProfile of the author, identified by the given author id.
-        Uses the ScopusAuthorController to send an author retrieval request to the scopus server.
-
-        :param author_id: The int id, of the author to retrieve the data from
-        :return: An AuthorProfile object, that contains all the relevant data if the author
-        """
-        return self.scopus_author_controller.get_author(author_id)
-
-    def get_affiliation(self, affiliation_id):
-        return self.scopus_affiliation_controller.get_affiliation(affiliation_id)
-
-    ###########################
-    # THE CACHE MODEL METHODS #
-    ###########################
-
-    def cache_last_modify_time(self):
-        """
-        pass
-
-        :return: The timestamp of the time, the cache was last modified
-        """
-        timestamp = self.cache_model.get_modify_timestamp()
-        return timestamp
-
-    def cache_publications(self, publication_list):
-        """
-        Overwrites the cache file with the given publication list.
-
-        :param publication_list: The publications to be saved in the cache
-        :return: void
-        """
-        self.cache_model.save(publication_list)
-
-    def all_publications_cache(self):
-        """
-        Loads the Cache, which contains the publication list, that was fetched from scopus. Unfiltered all publications
-        of the observed authors.
-
-        :return: The list with all the publication objects from the cache
-        """
-        publication_list = self.cache_model.load()
-        return publication_list
-
-    #####################################
-    # THE BACKUP DATABASE MODEL METHODS #
-    #####################################
-
-    def build_authors(self, author_list):
-        """
-        For every author in the list: If there is already an entry in the database for that author overrides that, if
-        there is not yet an entry creates a new from the AuthorProfile object.
-
-        :param author_list: A list of AuthorProfile objects
-        :return: void
-        """
-        # For every author in the author list trying to create a new entry in the database
-        for author in author_list:
-            self.print_author_profile(author)
-            self.backup_model.insert_author(author)
-
-    def build_publications(self, publication_list):
-        """
-        For every publication in the list: If there already is an entry in the database for the publication overrides
-        that entry, if there is no entry creates a new from the Publication object
-        :param publication_list:
-        :return:
-        """
-        for publication in publication_list:
-            self.print_publication_info(publication)
-            self.backup_model.insert_publication(publication)
-
-    def get_author_backup(self, author_id):
-        """
-        If given an author id retrieves the data of that author and returns an AuthorProfile object.
-
-        :param author_id: the string or int author id for the author of interest
-        :return: AuthorProfile object
-        """
-        if isinstance(author_id, str) or isinstance(author_id, int):
-            author_profile = self.backup_model.get_author(author_id)
-            return author_profile
-        elif isinstance(author_id, AuthorProfile):
-            author_profile = self.get_author_backup(author_id.id)
-            return author_profile
-
-    def all_author_backup(self):
-        return self.backup_model.get_all_authors()
-
-    def get_publication_backup(self, scopus_id):
-        """
-        If given a scopus id retrieves the data of that publication and returns the Publication object
-
-        :param scopus_id: The string or int scopus id for the publication of interest
-        :return: Publication object
-        """
-        # In case the passed data is actually a scopus id, calling the according method of the model to get the
-        # publication from the backup database
-        if isinstance(scopus_id, str) or isinstance(scopus_id, int):
-            publication = self.backup_model.get_publication(scopus_id)
-            return publication
-        elif isinstance(scopus_id, Publication):
-            publication = self.get_publication_backup(scopus_id.id)
-            return publication
-
-    def all_publication_backup(self):
-        return self.backup_model.get_all_publications()
-
-    def save_author_backup(self, author):
-        self.backup_model.insert_author(author)
-
-    def save_publication_backup(self, publication):
-        self.backup_model.insert_publication(publication)
-
-    def get_wordpress_id(self, publication):
-        """
-        Getting the wordpress id of the post for the given publication
-
-        :param publication: The Publication object, on which the post was based for which the wordpress id is
-            required
-        :return: The wordpress id
-        """
-        wordpress_id = self.wordpress_reference_model.get_wordpress_id(publication)
-        return wordpress_id
-
-    def save_reference(self, publication, wordpress_id):
-        """
-        Saves a new entry in the reference database, that connects the scopus id of the given publication with the
-        given wordpress id
-
-        :param publication: The Publication object, which was posted and now be connected with the wordpress id of
-            the Post it is in
-        :param wordpress_id: The wordpress id of the post of the publication
-        :return: void
-        """
-        scopus_id = int(publication)
-        self.wordpress_reference_model.insert_reference(scopus_id, wordpress_id)
-
-    #####################################
-    # THE OBSERVED AUTHOR MODEL METHODS #
-    #####################################
-
-    def filter_publications(self, publication_list):
-        """
-        Filters the publications by checking for the observed authors, that contributed if there is a observed author,
-        whose affiliations match the whitelist, the publication gets taken. If there is no whitelist match but a
-        blacklist match, the publication gets sorted in the second list.
-        For all publications, that neither match white nor blacklist, they get sorted into the third,
-        "remaining" list.
-
-        :param publication_list: The publications to be sorted by the observed authors
-        :return: whitelisted publications, black listed publications, remaining publication list
-        """
-        return self.observed_author_model.filter(publication_list)
-
-    def get_observed_authors(self, categories=None):
-        """
-        Gets a list of all the AuthorProfiles for the authors, that are currently being observed
-
-        :param categories: Could be a list of strings, each one a sepcific category of authors, for which to get the
-            AuthorProfiles. Defaults to None. If None ALL authors will used.
-        :return: A list of AuthorProfile objects
-        """
-        # Getting the author ids for all the observed authors
-        author_id_list = self.observed_author_model.get_observed_authors(categories=categories)
-
-        # Requesting the author retrieval for each one of them
-        author_list = []
-        for author_id in author_id_list:
-            author = self.scopus_author_controller.get_author(author_id)
-            author_list.append(author)
-
-        return author_list
-
-    # DISPLAYING METHODS
-
-    def print_affiliations_info(self, affiliation_list):
-        for affiliation in affiliation_list:
-            self.print_affiliation_info(affiliation)
-            print(' ')
-
-    def print_affiliation_info(self, affiliation):
-        affiliation_view = AffiliationSimpleView(affiliation)
-        affiliation_view_string = affiliation_view.get_string()
-        print(affiliation_view_string)
-
-    def print_publications_info(self, publication_list):
-        for publication in publication_list:
-            self.print_publication_info(publication)
-
-    def print_publication_info(self, publication):
-        string = self._get_publication_info_string(publication)
-        print(string)
-
-        return string
-
-    def _get_publication_info_string(self, publication):
-
-        publication_view = PublicationSimpleView(publication)
-        publication_view_string = publication_view.get_string()
-        return publication_view_string
-
-    def print_observed_authors_profile(self):
-        observed_authors = self.observed_author_model.get_observed_authors()
-        self.print_author_profile(observed_authors)
-
-    def print_author_profile(self, author):
-
-        author_profile_string = self._get_author_profile_string(author)
-        print(author_profile_string)
-
-    def _get_author_profile_string(self, author):
-
-        author_profile_view = AuthorSimpleView(author)
-        author_profile_view_string = author_profile_view.get_string()
-        return author_profile_view_string
