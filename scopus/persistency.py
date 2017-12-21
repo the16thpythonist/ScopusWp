@@ -258,7 +258,6 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
             creator = from_dict(creator_dict)
 
             authors_json_string = row[9].replace("'", '"')
-            print(authors_json_string)
             author_dict_list = json.loads(authors_json_string)
             author_list = from_dict(author_dict_list)
 

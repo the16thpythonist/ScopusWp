@@ -34,7 +34,7 @@ class IDManagerSingleton(IDManagerInterface):
     _instance = None
 
     def __init__(self):
-        self.path_string = '{}/ids.json'
+        self.path_string = '{}/ids.json'.format(PATH)
         self.path = pathlib.Path(self.path_string)
 
         content_dict = self.load()
@@ -129,7 +129,8 @@ class ReferenceModel:
         sql = (
             'SELECT '
             'id, '
-            'scopus_id '
+            'scopus_id, '
+            'wordpress_id '
             'FROM reference '
             'WHERE id={internal_id}'
         ).format(
