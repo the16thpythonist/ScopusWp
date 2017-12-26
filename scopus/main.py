@@ -21,14 +21,6 @@ class ScopusTopController:
     # TOP LEVEL METHODS #
     #####################
 
-    def load_cache(self, scopus_id_list):
-        # Getting all the publications from the scopus web database
-        publications = self.get_multiple_publications(scopus_id_list)
-        # Loading them all into the cache
-        self.insert_multiple_publications_cache(publications)
-        # Saving the cache
-        self.cache_controller.save()
-
     def get_publications_observed(self):
         # Getting the author ids of all the observed authors for the scopus database
         author_id_list = self.observation_controller.all_observed_ids()
@@ -53,10 +45,10 @@ class ScopusTopController:
     # THE SCOPUS METHODS #
     ######################
 
-    def get_publication(self, scopus_id):
+    def request_publication(self, scopus_id):
         return self.scopus_controller.get_publication(scopus_id)
 
-    def get_multiple_publications(self, scopus_id_list):
+    def request_multiple_publications(self, scopus_id_list):
         return self.scopus_controller.get_multiple_publications(scopus_id_list)
 
     ###########################
