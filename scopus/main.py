@@ -83,6 +83,9 @@ class ScopusTopController:
     def filter_by_observation(self, publication_list):
         return self.observation_controller.filter(publication_list)
 
+    def publication_observation_keywords(self, publication):
+        return self.observation_controller.get_publication_keywords(publication)
+
     ######################
     # THE BACKUP METHODS #
     ######################
