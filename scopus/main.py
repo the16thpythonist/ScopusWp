@@ -2,7 +2,8 @@ from ScopusWp.scopus.data import ScopusPublication
 
 from ScopusWp.scopus.observe import ScopusObservationController
 
-from ScopusWp.scopus.persistency import ScopusBackupController, ScopusCacheController, ScopusPickleCacheModel
+from ScopusWp.scopus.persistency import ScopusBackupController, ScopusCacheController
+from ScopusWp.scopus.persistency import ScopusPublicationPickleCacheModel, ScopusAuthorPickleCacheModel
 
 from ScopusWp.scopus.scopus import ScopusController
 
@@ -15,7 +16,7 @@ class ScopusTopController:
         self.observation_controller = ScopusObservationController()
         self.scopus_controller = ScopusController()
         self.backup_controller = ScopusBackupController()
-        self.cache_controller = ScopusCacheController(ScopusPickleCacheModel)
+        self.cache_controller = ScopusCacheController(ScopusPublicationPickleCacheModel, ScopusAuthorPickleCacheModel)
 
     #####################
     # TOP LEVEL METHODS #
@@ -49,6 +50,8 @@ class ScopusTopController:
             _publications = self.scopus_controller.get_author_publications(author_profile)
             publication_list += _publications
         return publication_list
+
+    # todo: rework the cache system for also saving author profiles of the observed authors
 
     def request_publication_ids_observed(self):
         # Getting the author ids of all the observed authors for the scopus database

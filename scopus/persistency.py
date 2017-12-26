@@ -10,7 +10,7 @@ import pathlib
 
 import pickle
 
-# TODO: make a json cache with pprint format string
+# TODO: make a json cache with pprint format string. nah json is to storage intensitive
 
 ###############
 #   CLASSES   #
@@ -27,6 +27,27 @@ class PublicationPersistencyInterface:
         raise NotImplementedError()
 
     def insert(self, publication):
+        raise NotImplementedError()
+
+    def contains(self):
+        raise NotImplementedError()
+
+    def save(self):
+        raise NotImplementedError()
+
+
+class AuthorProfilePersistencyInterface:
+
+    def select(self, author_id):
+        raise NotImplementedError()
+
+    def select_all(self):
+        raise NotImplementedError()
+
+    def insert(self, author_profile):
+        raise NotImplementedError()
+
+    def contains(self, author):
         raise NotImplementedError()
 
     def save(self):
@@ -73,22 +94,35 @@ class ScopusBackupController:
 
 class ScopusCacheController:
 
-    def __init__(self, cache_model_class):
+    def __init__(self, publication_cache_model_class, author_cache_model_class):
 
-        self.cache_model = cache_model_class()  # type: ScopusPickleCacheModel
+        self.publication_cache_model = publication_cache_model_class()  # type: ScopusPublicationPickleCacheModel
+        self.author_cache_model = author_cache_model_class()  # type: ScopusAuthorPickleCacheModel
+
+    def insert_author_profile(self, author_profile):
+        self.author_cache_model.insert(author_profile)
+
+    def contains_author_profile(self, author):
+        return self.author_cache_model.contains(author)
+
+    def select_author_profile(self, author_id):
+        return self.author_cache_model.select_all(author_id)
+
+    def select_all_author_profiles(self):
+        return self.author_cache_model.select_all()
 
     def insert_publication(self, publication):
-        self.cache_model.insert(publication)
+        self.publication_cache_model.insert(publication)
 
     def insert_multiple_publications(self, publication_list):
         for publication in publication_list:
             self.insert_publication(publication)
 
     def contains_publication(self, publication):
-        return self.cache_model.contains(publication)
+        return self.publication_cache_model.contains(publication)
 
     def select_publication(self, scopus_id):
-        return self.cache_model.select(scopus_id)
+        return self.publication_cache_model.select(scopus_id)
 
     def select_multiple_publications(self, scopus_id_list):
         publication_list = []
@@ -98,23 +132,63 @@ class ScopusCacheController:
         return publication_list
 
     def select_all_publications(self):
-        return self.cache_model.select_all()
+        return self.publication_cache_model.select_all()
 
     def select_all_ids(self):
-        return list(self.cache_model.content.keys())
+        return list(self.publication_cache_model.content.keys())
 
     def save(self):
-        self.cache_model.save()
+        self.publication_cache_model.save()
+        self.author_cache_model.save()
 
     def wipe(self):
-        self.cache_model.wipe()
+        self.publication_cache_model.wipe()
+        self.author_cache_model.wipe()
 
 ##########
 # Models #
 ##########
 
 
-class ScopusPickleCacheModel(PublicationPersistencyInterface):
+class ScopusAuthorPickleCacheModel(AuthorProfilePersistencyInterface):
+
+    def __init__(self):
+        self.path_string = '{}/cache/authors.pkl'
+        self.path = pathlib.Path(self.path_string)
+        self.content = self.load()
+
+    def load(self):
+        with self.path.open(mode='rb') as file:
+            content = pickle.load(file)
+        return content
+
+    def insert(self, author_profile):
+        self.content[int(author_profile)] = author_profile
+
+    def select(self, author_id):
+        if author_id in self.content.keys():
+            return self.content[author_id]
+
+    def select_all(self):
+        author_profile_list = []
+        for key in self.content.keys():
+            author_profile = self.content[key]
+            author_profile_list.append(author_profile)
+        return author_profile_list
+
+    def contains(self, author):
+        return int(author) in self.content.keys()
+
+    def wipe(self):
+        self.content = {}
+        self.save()
+
+    def save(self):
+        with self.path.open(mode="wb+") as file:
+            pickle.dump(self.content, file)
+
+
+class ScopusPublicationPickleCacheModel(PublicationPersistencyInterface):
 
     def __init__(self):
 
