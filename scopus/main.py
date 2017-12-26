@@ -21,6 +21,23 @@ class ScopusTopController:
     # TOP LEVEL METHODS #
     #####################
 
+    def get_publication(self, scopus_id):
+        # Checking if the publication is in the cache and returning the cached value if possible
+        is_cached = self.cache_controller.contains_publication(scopus_id)
+        if is_cached:
+            publication = self.cache_controller.select_publication(scopus_id)
+        else:
+            # If the publication is not cached, getting it from the scopus website
+            publication = self.scopus_controller.get_publication(scopus_id)
+        return publication
+
+    def get_multiple_publications(self, scopus_id_list):
+        publication_list = []
+        for scopus_id in scopus_id_list:
+            publication = self.get_publication(scopus_id)
+            publication_list.append(publication)
+        return publication_list
+
     def get_publications_observed(self):
         # Getting the author ids of all the observed authors for the scopus database
         author_id_list = self.observation_controller.all_observed_ids()
