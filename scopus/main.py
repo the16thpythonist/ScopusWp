@@ -81,6 +81,15 @@ class ScopusTopController:
 
             self.cache_controller.save()
 
+    def _insert_cache_observed_authors(self):
+        # Getting the list of author ids for the observed authors from the observation controller
+        observed_author_id_list = self.observation_controller.all_observed_ids()
+        # Getting the list of author ids already saved in the cache
+        cache_author_id_list = self.cache_controller.pass
+
+    def _insert_cache_observed_publications(self):
+        pass
+
     ######################
     # THE SCOPUS METHODS #
     ######################

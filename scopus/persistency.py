@@ -10,11 +10,13 @@ import pathlib
 
 import pickle
 
-# TODO: make a json cache with pprint format string. nah json is to storage intensitive
 
 ###############
 #   CLASSES   #
 ###############
+
+# todo: Make the cache update save and the refill via delete, so progress does not get lost with connection error
+# todo: in the long run, even the cache has to be a database, or anything that does not clog the RAM, maybe shelve
 
 
 # TODO: Make it a dict-like object
@@ -106,7 +108,7 @@ class ScopusCacheController:
         return self.author_cache_model.contains(author)
 
     def select_author_profile(self, author_id):
-        return self.author_cache_model.select_all(author_id)
+        return self.author_cache_model.select(author_id)
 
     def select_all_author_profiles(self):
         return self.author_cache_model.select_all()
@@ -134,8 +136,11 @@ class ScopusCacheController:
     def select_all_publications(self):
         return self.publication_cache_model.select_all()
 
-    def select_all_ids(self):
+    def select_all_publication_ids(self):
         return list(self.publication_cache_model.content.keys())
+
+    def select_all_author_ids(self):
+        return list(self.author_cache_model.content.keys())
 
     def save(self):
         self.publication_cache_model.save()
