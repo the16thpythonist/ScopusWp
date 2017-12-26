@@ -99,6 +99,13 @@ class ReferenceController:
         return self.reference_model.select(internal_id)
 
     def select_all_references(self):
+        """
+        Returns a list of tuples, where each tuple represents one entry in the reference database, with the first
+        item being the internal id for the publication, the second being the wordpress id and the third being the
+        scopus id for the publication.
+
+        :return: A list of tuples with three items each
+        """
         return self.reference_model.select_all()
 
     def insert_reference(self, internal_id, wordpress_id, scopus_id):
@@ -128,11 +135,28 @@ class ReferenceModel:
         # The actual data base access
         self.database_access = MySQLDatabaseAccess()
 
+    def select_all(self):
+        """
+        Returns a list of all reference tuples, currently saved in the reference database. A reference tuple contains
+        the internal id as the first item, the wordpress id as the second, the scopus id as the third.
+
+        :return: A list of tuples with three items
+        """
+        sql = (
+            'SELECT '
+            'id, '
+            'wordpress_id,'
+            'scopus_id '
+            'FROM reference '
+        )
+        row_list = self.database_access.select(sql)
+        return row_list
+
     def select(self, internal_id):
         sql = (
             'SELECT '
             'id, '
-            'wordpress_id, '
+            'wordpress_id,'
             'scopus_id '
             'FROM reference '
             'WHERE id={internal_id}'
@@ -143,18 +167,6 @@ class ReferenceModel:
         row_list = self.database_access.select(sql)
         return row_list[0]
         # TODO: an if decision if actually exists and possibly exception
-
-    def select_all(self):
-        sql = (
-            'SELECT '
-            'id,'
-            'wordpress_id,'
-            'scopus_id'
-            'FROM reference'
-        )
-
-        row_list = self.database_access.select(sql)
-        return row_list
 
     def insert(self, internal_id, wordpress_id, scopus_id):
         sql = (
@@ -180,4 +192,3 @@ class ReferenceModel:
 
     def search_by_scopus(self, scopus_id):
         pass
-
