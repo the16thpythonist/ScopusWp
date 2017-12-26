@@ -180,3 +180,4 @@ class ReferenceModel:
 
     def search_by_scopus(self, scopus_id):
         pass
+
