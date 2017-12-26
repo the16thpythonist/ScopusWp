@@ -98,6 +98,9 @@ class ReferenceController:
     def select_reference(self, internal_id):
         return self.reference_model.select(internal_id)
 
+    def select_all_references(self):
+        return self.reference_model.select_all()
+
     def insert_reference(self, internal_id, wordpress_id, scopus_id):
         self.reference_model.insert(internal_id, wordpress_id, scopus_id)
 
@@ -129,8 +132,8 @@ class ReferenceModel:
         sql = (
             'SELECT '
             'id, '
-            'scopus_id, '
-            'wordpress_id '
+            'wordpress_id, '
+            'scopus_id '
             'FROM reference '
             'WHERE id={internal_id}'
         ).format(
@@ -140,6 +143,18 @@ class ReferenceModel:
         row_list = self.database_access.select(sql)
         return row_list[0]
         # TODO: an if decision if actually exists and possibly exception
+
+    def select_all(self):
+        sql = (
+            'SELECT '
+            'id,'
+            'wordpress_id,'
+            'scopus_id'
+            'FROM reference'
+        )
+
+        row_list = self.database_access.select(sql)
+        return row_list
 
     def insert(self, internal_id, wordpress_id, scopus_id):
         sql = (
