@@ -62,10 +62,11 @@ class TopController:
         # create a new internal id for the object
         publication = self.reference_controller.publication_from_scopus(scopus_publication)
 
-        # Getting the keywords for each publication.
+        # Getting the keywords for each publication
+        keywords = self.scopus_controller.publication_observation_keywords(publication)
 
         # Posting this publication to the wordpress site
-        wordpress_id = self.wordpress_controller.post_publication(publication, [])
+        wordpress_id = self.wordpress_controller.post_publication(publication, keywords)
         # Saving the posting in the reference database
         self.reference_controller.insert_reference(publication.id, wordpress_id, scopus_publication.id)
         # Saving the publication to the backup system
