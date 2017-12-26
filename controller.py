@@ -39,11 +39,11 @@ class TopController:
 
         # todo: not base on cache, base on author observations
         # Getting a list with all the scopus ids of the publications currently saved in the cache
-        cache_id_list = self.scopus_controller.cache_controller.select_all_ids()
+        observed_id_list = self.scopus_controller.get_publication_ids_observed()
 
         # Getting the difference of the scopus ids in the cache and the scopus ids from the reference as exactly those
         # scopus ids, which are the new publications to be updated to the website
-        new_id_list = list(set(cache_id_list) - set(reference_scopus_id_list))
+        new_id_list = list(set(observed_id_list) - set(reference_scopus_id_list))
         # Getting those publications from the cache
         new_publications_list = self.scopus_controller.select_multiple_publications_cache(new_id_list)
 
