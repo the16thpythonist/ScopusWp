@@ -5,8 +5,6 @@ from ScopusWp.reference import ReferenceController
 from ScopusWp.wordpress import WordpressPublicationPostController
 
 
-# Todo: make the scopus controller get publication look into the cache first and the requesting a new one separate method
-
 class TopController:
 
     def __init__(self):
@@ -86,6 +84,18 @@ class TopController:
         # Saving the backup database and the reference database
         self.scopus_controller.backup_controller.save()
         self.reference_controller.save()
+
+    def wipe_website(self):
+        # Getting all the wordpress ids from the reference database to delete all the posts from the website
+        reference_list = self.reference_controller.select_all_references()
+        for reference in reference_list:
+            wordpress_id = reference[1]
+            self.wordpress_controller.delete_post(wordpress_id)
+
+        # Deleting the backup database
+        self.scopus_controller.backup_controller.wipe()
+        # Deleting the reference database
+        self.reference_controller.wipe()
 
     def insert_scopus_cache_observed(self):
         self.scopus_controller.insert_cache_observed()
