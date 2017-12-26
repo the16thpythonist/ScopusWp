@@ -29,7 +29,7 @@ class ScopusTopController:
         # Saving the cache
         self.cache_controller.save()
 
-    def load_cache_observed(self):
+    def get_publications_observed(self):
         # Getting the author ids of all the observed authors for the scopus database
         author_id_list = self.observation_controller.all_observed_ids()
         # Getting the author profiles for all the authors
@@ -39,6 +39,11 @@ class ScopusTopController:
         for author_profile in author_profile_list:
             _publications = self.scopus_controller.get_author_publications(author_profile)
             publication_list += _publications
+        return publication_list
+
+    def insert_cache_observed(self):
+        # Getting the publications of the observed authors
+        publication_list = self.get_publications_observed()
         # Loading the cache with those publications
         self.cache_controller.insert_multiple_publications(publication_list)
         # Saving the cache data

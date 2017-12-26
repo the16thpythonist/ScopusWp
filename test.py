@@ -109,9 +109,30 @@ def test_wordpress(author_id=56950893700):
     print('[i] The posts have the following ids:')
     print(wordpress_ids)
     input('[?] Press any button to continue and delete the posts')
+
     print('[!] Deleting the posts...\n')
     for wordpress_id in wordpress_ids:
         wordpress_controller.delete_post(wordpress_id)
     print('[!] Finished deleting!')
 
-test_wordpress()
+
+def test_scopus_cache_observed():
+    from ScopusWp.controller import TopController
+
+    string = (
+        '##########################################################\n'
+        '# TESTING LOADING THE SCOPUS CACHE WITH OBSERVED AUTHORS #\n'
+        '##########################################################\n'
+    )
+    print(string)
+    print('[!] Requesting all the publications from the observed authors from the scopus website...\n')
+    controller = TopController()
+    controller.insert_scopus_cache_observed()
+    print('[!] Getting all the publications from the cache...\n')
+    scopus_publications = controller.select_all_scopus_cache()
+    print('[i] These are the publications in the cache ')
+    table_view = ScopusPublicationTableView(scopus_publications)
+    print(str(table_view))
+
+
+test_scopus_cache_observed()

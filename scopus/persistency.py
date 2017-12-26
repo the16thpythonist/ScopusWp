@@ -16,6 +16,7 @@ import pickle
 #   CLASSES   #
 ###############
 
+
 # TODO: Make it a dict-like object
 class PublicationPersistencyInterface:
 
@@ -95,6 +96,9 @@ class ScopusCacheController:
 
     def select_all_publications(self):
         return self.cache_model.select_all()
+
+    def select_all_ids(self):
+        return list(self.cache_model.content.keys())
 
     def save(self):
         self.cache_model.save()
