@@ -63,13 +63,13 @@ class ScopusObservationController:
             # Checking the affiliations for all the authors
             for author in publication.authors:
                 author_id = int(author.id)
-                if author_id in self.author_observation_model:
-                    author_observation = self.author_observation_model[author_id]
-                    _is_whitelist = author_observation.check_whitelist(author.affiliations)
+                if author_id in self.author_observation_model.keys():
+                    author_observation = self.author_observation_model[author_id] # type: ScopusAuthorObservation
+                    _is_whitelist = author_observation.whitelist_contains_any(author.affiliations)
                     # If there was a blacklist found it would be overwritten with the next author, like this a TRUE
                     # will be preserved until the end of the loop
                     if not _is_blacklist:
-                        _is_blacklist = author_observation.check_blacklist(author.affiliations)
+                        _is_blacklist = author_observation.blacklist_contains_any(author.affiliations)
 
                     # In the case of whitelist, the publication will be added instantly, but for blacklist it is
                     # decided after all authors have been iterated

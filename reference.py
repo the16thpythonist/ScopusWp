@@ -124,6 +124,12 @@ class ReferenceController:
         publication = Publication.from_scopus_publication(scopus_publication, publication_id)
         return publication
 
+    def wipe(self):
+        self.reference_model.wipe()
+
+    def save(self):
+        self.reference_model.save()
+
 
 # TODO: Think about dependency injection for database access?
 
@@ -134,6 +140,13 @@ class ReferenceModel:
 
         # The actual data base access
         self.database_access = MySQLDatabaseAccess()
+
+    def wipe(self):
+        sql = 'TRUNCATE reference'
+        self.database_access.execute(sql)
+
+    def save(self):
+        self.database_access.save()
 
     def select_all(self):
         """

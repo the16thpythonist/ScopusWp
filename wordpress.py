@@ -60,6 +60,8 @@ class WordpressPublicationPostController:
         self.enable_comments(wordpress_id)
 
         for publication in publication_list:
+            if publication.title == '':
+                continue
             comment = WordPressComment()
             comment_view = PublicationWordpressCommentView(publication)
 
@@ -68,6 +70,7 @@ class WordpressPublicationPostController:
             comment_id = self.client.call(NewComment(wordpress_id, comment))
 
             date_created = comment_view.get_date()
+            comment.date_created = date_created
             self.client.call(EditComment(comment_id, comment))
 
         self.disable_comments(wordpress_id)

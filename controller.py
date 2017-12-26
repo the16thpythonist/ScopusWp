@@ -44,12 +44,16 @@ class TopController:
 
         # Getting the difference of the scopus ids in the cache and the scopus ids from the reference as exactly those
         # scopus ids, which are the new publications to be updated to the website
-        new_id_list = cache_id_list - reference_scopus_id_list
+        new_id_list = list(set(cache_id_list) - set(reference_scopus_id_list))
         # Getting those publications from the cache
         new_publications_list = self.scopus_controller.select_multiple_publications_cache(new_id_list)
 
         # Filtering the new publications by the observed author criteria
-        filtered_publication_list = self.scopus_controller.filter_by_observation(new_publications_list)
+        (
+            filtered_publication_list,
+            blacklist,
+            remaining
+         ) = self.scopus_controller.filter_by_observation(new_publications_list)
 
         return filtered_publication_list
 
@@ -62,15 +66,23 @@ class TopController:
         wordpress_id = self.wordpress_controller.post_publication(publication, [])
         # Saving the posting in the reference database
         self.reference_controller.insert_reference(publication.id, wordpress_id, scopus_publication.id)
+        # Saving the publication to the backup system
+        self.scopus_controller.insert_publication_backup(scopus_publication)
 
         # Getting all the citations from the scopus site
         citation_scopus_publication_list = self.scopus_controller.get_multiple_publications(scopus_publication.citations)
         citation_publication_list = []
         for citation_scopus_publication in citation_scopus_publication_list:
+            # Saving the citation publication to the backup system
+            self.scopus_controller.insert_publication_backup(citation_scopus_publication)
             publication = self.reference_controller.publication_from_scopus(citation_scopus_publication)
             citation_publication_list.append(publication)
         # Posting the comments
         self.wordpress_controller.post_citations(wordpress_id, citation_publication_list)
+
+        # Saving the backup database and the reference database
+        self.scopus_controller.backup_controller.save()
+        self.reference_controller.save()
 
     def load_scopus_cache(self, scopus_id_list):
         self.scopus_controller.load_cache(scopus_id_list)

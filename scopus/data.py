@@ -257,6 +257,8 @@ class ScopusAuthor(ScopusIdentifierInterface, DictionaryConversionInterface):
         self.last_name = last_name.replace("'", "")
         self.id = id
         self.affiliations = affiliation_list
+        if '' in self.affiliations:
+            self.affiliations.remove('')
 
     def get_id(self):
         """
@@ -417,7 +419,10 @@ class ScopusAuthorObservation:
         :param affiliation_id: The int id to check for
         :return: boolean
         """
-        return int(affiliation_id) in self.whitelist
+        try:
+            return int(affiliation_id) in self.whitelist
+        except ValueError:
+            return False
 
     def whitelist_contains_any(self, affiliation_id_list):
         """
@@ -455,7 +460,10 @@ class ScopusAuthorObservation:
         :param affiliation_id: The int id
         :return: boolean
         """
-        return int(affiliation_id) in self.blacklist
+        try:
+            return int(affiliation_id) in self.blacklist
+        except ValueError:
+            return False
 
     def blacklist_contains_any(self, affiliation_id_list):
         """

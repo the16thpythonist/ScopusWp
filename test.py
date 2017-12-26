@@ -135,4 +135,25 @@ def test_scopus_cache_observed():
     print(str(table_view))
 
 
-test_scopus_cache_observed()
+def test_scopus_cache():
+
+    from ScopusWp.scopus.main import ScopusTopController
+
+    controller = ScopusTopController()
+
+    publications = controller.select_all_publications_cache()
+
+    table_view = ScopusPublicationTableView(publications)
+    print(str(table_view))
+
+
+def test_update_publications_website():
+
+    from ScopusWp.controller import TopController
+
+    controller = TopController()
+
+    controller.update_publications_website()
+
+
+test_update_publications_website()
