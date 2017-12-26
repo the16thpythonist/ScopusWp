@@ -50,6 +50,18 @@ class ScopusTopController:
             publication_list += _publications
         return publication_list
 
+    def request_publication_ids_observed(self):
+        # Getting the author ids of all the observed authors for the scopus database
+        author_id_list = self.observation_controller.all_observed_ids()
+        # Getting the author profiles for all the authors
+        author_profile_list = self.scopus_controller.get_multiple_author_profiles(author_id_list)
+        # Assembling the list of publications for each author profile
+        scopus_id_list = []
+        for author_profile in author_profile_list:
+            difference = list(set(author_profile.publications) - set(scopus_id_list))
+            scopus_id_list += difference
+        return scopus_id_list
+
     def insert_cache_observed(self):
         # Getting the publications of the observed authors
         publication_list = self.get_publications_observed()

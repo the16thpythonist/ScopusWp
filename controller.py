@@ -37,6 +37,7 @@ class TopController:
             if scopus_id != 0:
                 reference_scopus_id_list.append(scopus_id)
 
+        # todo: not base on cache, base on author observations
         # Getting a list with all the scopus ids of the publications currently saved in the cache
         cache_id_list = self.scopus_controller.cache_controller.select_all_ids()
 
