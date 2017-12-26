@@ -30,7 +30,7 @@ class TopController:
                 reference_scopus_id_list.append(scopus_id)
 
         # Getting a list with all the scopus ids of the publications currently saved in the cache
-        self.scopus_controller.cache_controller.cache_model
+        self.scopus_controller.cache_controller
 
 
     def load_scopus_cache(self, scopus_id_list):
