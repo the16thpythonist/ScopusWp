@@ -84,6 +84,9 @@ class ScopusCacheController:
         for publication in publication_list:
             self.insert_publication(publication)
 
+    def contains_publication(self, publication):
+        return self.cache_model.contains(publication)
+
     def select_publication(self, scopus_id):
         return self.cache_model.select(scopus_id)
 
@@ -139,6 +142,9 @@ class ScopusPickleCacheModel(PublicationPersistencyInterface):
             publication = self.content[key]
             publication_list.append(publication)
         return publication_list
+
+    def contains(self, publication):
+        return int(publication) in self.content.keys()
 
     def wipe(self):
         self.content = {}
