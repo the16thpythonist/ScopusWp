@@ -51,7 +51,23 @@ class ScopusTopController:
             publication_list += _publications
         return publication_list
 
-    # todo: rework the cache system for also saving author profiles of the observed authors
+    def get_publication_ids_observed(self):
+        # Getting the list of observed authors from the observation controller
+        observed_author_id_list = self.observation_controller.all_observed_ids()
+
+        publication_id_list = []
+        for author_id in observed_author_id_list:
+            # Attempting to get the author profiles for the publication id lists from the cache and if the cache
+            # does not contain them, requesting them from scopus
+            is_cached = self.cache_controller.contains_author_profile(author_id)
+            if is_cached:
+                author_profile = self.cache_controller.select_author_profile(author_id)
+            else:
+                author_profile = self.scopus_controller.get_author_profile(author_id)
+            publication_difference_list = list(set(author_profile.publications) - set(publication_id_list))
+            publication_id_list += publication_difference_list
+
+        return publication_id_list
 
     def request_publication_ids_observed(self):
         # Getting the author ids of all the observed authors for the scopus database
@@ -65,30 +81,60 @@ class ScopusTopController:
             scopus_id_list += difference
         return scopus_id_list
 
-    def insert_cache_observed(self):
-        # Getting the publications of the observed authors
-        publication_list = self.get_publications_observed()
-        # Loading the cache with those publications
-        self.cache_controller.insert_multiple_publications(publication_list)
-        # Saving the cache data
-        self.cache_controller.save()
+    def reload_cache_observed(self):
+        # Clearing the cache
+        self.cache_controller.wipe()
 
-        # Getting all the citations
-        for publication in publication_list:
-            # Getting all the publications, that have cited the observed publications also into the cache
-            citation_publication_list = self.request_multiple_publications(publication.citations)
-            self.cache_controller.insert_multiple_publications(citation_publication_list)
+        # Loading the cache anew
+        self.load_cache_observed()
 
-            self.cache_controller.save()
+    def load_cache_observed(self):
+        # Loading the author profiles into the cache
+        self._load_cache_observed_authors()
 
-    def _insert_cache_observed_authors(self):
+        # Loading the publications of the observed authors into the cache
+        self._load_cache_observed_publications()
+
+    def _load_cache_observed_authors(self):
         # Getting the list of author ids for the observed authors from the observation controller
         observed_author_id_list = self.observation_controller.all_observed_ids()
         # Getting the list of author ids already saved in the cache
-        cache_author_id_list = self.cache_controller.pass
+        cache_author_id_list = self.cache_controller.select_all_author_ids()
 
-    def _insert_cache_observed_publications(self):
-        pass
+        # Subtracting the the observed from the cached ids and adding only the left over to the cache
+        difference_author_id_list = list(set(observed_author_id_list) - set(cache_author_id_list))
+        auto_save_counter = 0
+        for author_id in difference_author_id_list:
+            # Saving during the process, so progress is not lost after connection error
+            if auto_save_counter == 10:
+                self.cache_controller.save()
+
+            # Requesting the author profile from the scopus website
+            author_profile = self.scopus_controller.get_author_profile(author_id)
+            self.cache_controller.insert_author_profile(author_profile)
+            auto_save_counter += 1
+        self.cache_controller.save()
+
+    def _load_cache_observed_publications(self):
+        # Getting the list of publication ids for all the observed authors from the cache
+        observed_publication_id_list = self.get_publication_ids_observed()
+        # getting the list of publications, that are already in the cache
+        cache_publication_id_list = self.cache_controller.select_all_publication_ids()
+
+        difference_publication_id_list = list(set(observed_publication_id_list) - set(cache_publication_id_list))
+        auto_save_counter = 0
+        for scopus_id in difference_publication_id_list:
+            # Saving during the process, so progress is not lost after connection error
+            if auto_save_counter == 10:
+                self.cache_controller.save()
+
+            # Requesting the publication from the scopus website
+            publication = self.scopus_controller.get_publication(scopus_id)
+            self.cache_controller.insert_publication(publication)
+            auto_save_counter += 1
+
+        # Saving at the end
+        self.cache_controller.save()
 
     ######################
     # THE SCOPUS METHODS #
