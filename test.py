@@ -156,4 +156,4 @@ def test_update_publications_website():
     controller.update_publications_website()
 
 
-test_update_publications_website()
+test_scopus_cache_observed()

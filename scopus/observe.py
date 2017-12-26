@@ -52,6 +52,16 @@ class ScopusObservationController:
     def all_observed_ids(self):
         return self.author_observation_model.keys()
 
+    def get_publication_keywords(self, publication):
+        keywords = []
+        # Going through all the authors of the publication and adding all the keywords of each observed author found
+        for author in publication.authors:
+            if author in self.author_observation_model:
+                author_keywords = self.get_author_keywords(author)
+                difference = list(set(author_keywords) - set(keywords))
+                keywords += difference
+        return keywords
+
     def filter(self, publication_list):
         whitelist_publications = []
         blacklist_publications = []
