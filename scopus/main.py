@@ -58,6 +58,14 @@ class ScopusTopController:
         # Saving the cache data
         self.cache_controller.save()
 
+        # Getting all the citations
+        for publication in publication_list:
+            # Getting all the publications, that have cited the observed publications also into the cache
+            citation_publication_list = self.request_multiple_publications(publication.citations)
+            self.cache_controller.insert_multiple_publications(citation_publication_list)
+
+            self.cache_controller.save()
+
     ######################
     # THE SCOPUS METHODS #
     ######################

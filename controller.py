@@ -84,9 +84,6 @@ class TopController:
         self.scopus_controller.backup_controller.save()
         self.reference_controller.save()
 
-    def load_scopus_cache(self, scopus_id_list):
-        self.scopus_controller.load_cache(scopus_id_list)
-
     def insert_scopus_cache_observed(self):
         self.scopus_controller.insert_cache_observed()
 
