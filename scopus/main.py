@@ -84,6 +84,7 @@ class ScopusTopController:
     def reload_cache_observed(self):
         # Clearing the cache
         self.cache_controller.wipe()
+        self.cache_controller.save()
 
         # Loading the cache anew
         self.load_cache_observed()
@@ -95,19 +96,36 @@ class ScopusTopController:
         # Loading the publications of the observed authors into the cache
         self._load_cache_observed_publications()
 
-    def _load_cache_observed_authors(self):
-        # Getting the list of author ids for the observed authors from the observation controller
-        observed_author_id_list = self.observation_controller.all_observed_ids()
-        # Getting the list of author ids already saved in the cache
+    def load_publications_cache(self, scopus_id_list, auto_save_interval=20):
+        # Getting the list of publication ids for those publications, that are still in the cache
+        cache_scopus_id_list = self.cache_controller.select_all_publication_ids()
+
+        difference_scopus_id_list = list(set(scopus_id_list) - set(cache_scopus_id_list))
+
+        auto_save_count = 0
+        for scopus_id in difference_scopus_id_list:
+            if auto_save_count == auto_save_interval:
+                self.cache_controller.save()
+                auto_save_count = 0
+
+            publication = self.scopus_controller.get_publication(scopus_id)
+            self.cache_controller.insert_publication(publication)
+
+            auto_save_count += 1
+
+        self.cache_controller.save()
+
+    def load_authors_cache(self, author_id_list, auto_save_interval=20):
         cache_author_id_list = self.cache_controller.select_all_author_ids()
 
         # Subtracting the the observed from the cached ids and adding only the left over to the cache
-        difference_author_id_list = list(set(observed_author_id_list) - set(cache_author_id_list))
+        difference_author_id_list = list(set(author_id_list) - set(cache_author_id_list))
         auto_save_counter = 0
         for author_id in difference_author_id_list:
             # Saving during the process, so progress is not lost after connection error
-            if auto_save_counter == 10:
+            if auto_save_counter == auto_save_interval:
                 self.cache_controller.save()
+                auto_save_counter = 0
 
             # Requesting the author profile from the scopus website
             author_profile = self.scopus_controller.get_author_profile(author_id)
@@ -115,26 +133,30 @@ class ScopusTopController:
             auto_save_counter += 1
         self.cache_controller.save()
 
+    def _load_cache_observed_authors(self):
+        # Getting the list of author ids for the observed authors from the observation controller
+        observed_author_id_list = self.observation_controller.all_observed_ids()
+
+        # Loading all those author profiles of the observed authors into the cache
+        self.load_authors_cache(observed_author_id_list)
+
     def _load_cache_observed_publications(self):
         # Getting the list of publication ids for all the observed authors from the cache
         observed_publication_id_list = self.get_publication_ids_observed()
-        # getting the list of publications, that are already in the cache
-        cache_publication_id_list = self.cache_controller.select_all_publication_ids()
 
-        difference_publication_id_list = list(set(observed_publication_id_list) - set(cache_publication_id_list))
-        auto_save_counter = 0
-        for scopus_id in difference_publication_id_list:
-            # Saving during the process, so progress is not lost after connection error
-            if auto_save_counter == 10:
-                self.cache_controller.save()
+        # Loading all those publications into the cache after having them requested from the scopus website
+        self.load_publications_cache(observed_publication_id_list)
 
-            # Requesting the publication from the scopus website
-            publication = self.scopus_controller.get_publication(scopus_id)
-            self.cache_controller.insert_publication(publication)
-            auto_save_counter += 1
+        # Getting the citations scopus id list from every one of those publications
+        citation_scopus_id_list = []
+        for scopus_id in observed_publication_id_list:
+            publication = self.cache_controller.select_publication(scopus_id)
 
-        # Saving at the end
-        self.cache_controller.save()
+            difference = list(set(publication.citations) - set(citation_scopus_id_list))
+            citation_scopus_id_list += difference
+
+        # Loading all those publications into the cache as well
+        self.load_publications_cache(citation_scopus_id_list)
 
     ######################
     # THE SCOPUS METHODS #

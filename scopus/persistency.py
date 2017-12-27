@@ -31,7 +31,7 @@ class PublicationPersistencyInterface:
     def insert(self, publication):
         raise NotImplementedError()
 
-    def contains(self):
+    def contains(self, publication):
         raise NotImplementedError()
 
     def save(self):
@@ -158,7 +158,7 @@ class ScopusCacheController:
 class ScopusAuthorPickleCacheModel(AuthorProfilePersistencyInterface):
 
     def __init__(self):
-        self.path_string = '{}/cache/authors.pkl'
+        self.path_string = '{}/cache/authors.pkl'.format(PATH)
         self.path = pathlib.Path(self.path_string)
         self.content = self.load()
 
@@ -197,7 +197,7 @@ class ScopusPublicationPickleCacheModel(PublicationPersistencyInterface):
 
     def __init__(self):
 
-        self.path_string = '{}/scopus/cache.pkl'.format(PATH)
+        self.path_string = '{}/cache/publications.pkl'.format(PATH)
 
         self.path = pathlib.Path(self.path_string)
 

@@ -37,7 +37,6 @@ class TopController:
             if scopus_id != 0:
                 reference_scopus_id_list.append(scopus_id)
 
-        # todo: not base on cache, base on author observations
         # Getting a list with all the scopus ids of the publications currently saved in the cache
         observed_id_list = self.scopus_controller.get_publication_ids_observed()
 
@@ -98,8 +97,11 @@ class TopController:
         # Deleting the reference database
         self.reference_controller.wipe()
 
-    def insert_scopus_cache_observed(self):
-        self.scopus_controller.insert_cache_observed()
+    def reload_scopus_cache_observed(self):
+        self.scopus_controller.reload_cache_observed()
+
+    def load_scopus_cache_observed(self):
+        self.scopus_controller.load_cache_observed()
 
     def select_all_scopus_cache(self):
         return self.scopus_controller.select_all_publications_cache()

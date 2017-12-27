@@ -127,7 +127,7 @@ def test_scopus_cache_observed():
     print(string)
     print('[!] Requesting all the publications from the observed authors from the scopus website...\n')
     controller = TopController()
-    controller.insert_scopus_cache_observed()
+    controller.reload_scopus_cache_observed()
     print('[!] Getting all the publications from the cache...\n')
     scopus_publications = controller.select_all_scopus_cache()
     print('[i] These are the publications in the cache ')
@@ -152,6 +152,8 @@ def test_update_publications_website():
     from ScopusWp.controller import TopController
 
     controller = TopController()
+
+    controller.wipe_website()
 
     controller.update_publications_website()
 
