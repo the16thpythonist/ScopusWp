@@ -96,18 +96,40 @@ class ScopusTopController:
         # Loading the publications of the observed authors into the cache
         self._load_cache_observed_publications()
 
-    def load_publications_cache(self, scopus_id_list, auto_save_interval=20):
+    def load_publications_cache(self, scopus_id_list, auto_save_interval=20, reload=False):
+        """
+        Loads the publication info about the publications described by the scopus ids in the list from the scopus
+        website and saves them in the cache.
+
+        Although only specifically requests those publications from the web, that are not already in the cache, for
+        network performance reasons. All the publications can be requested by setting reload to true.
+        Also the cache auto saves after the specified amount for the auto save interval in case of connection error.
+
+        :param scopus_id_list: The list of scopus ids, for all the publications to be loaded into the cache
+        :param auto_save_interval: The amount of publications to be fetched from the scopus website, before the
+            cache saves the progress. default on 20
+        :param reload: The boolean value of whether or not to get all the specified publications from the scopus
+            website or leave out those, already in the cache
+        :return: void
+        """
         # Getting the list of publication ids for those publications, that are still in the cache
         cache_scopus_id_list = self.cache_controller.select_all_publication_ids()
 
-        difference_scopus_id_list = list(set(scopus_id_list) - set(cache_scopus_id_list))
+        # If the reload flag is True, using the whole scopus id list as the list to be requested from the scopus site
+        # else, only using those ids, that are not in the cache already
+        if reload:
+            difference_scopus_id_list = scopus_id_list
+        else:
+            difference_scopus_id_list = list(set(scopus_id_list) - set(cache_scopus_id_list))
 
         auto_save_count = 0
         for scopus_id in difference_scopus_id_list:
+            # Auto saving if the count has reached the specified interval and then resetting the counter
             if auto_save_count == auto_save_interval:
                 self.cache_controller.save()
                 auto_save_count = 0
 
+            # Getting the publication from the scopus website
             publication = self.scopus_controller.get_publication(scopus_id)
             self.cache_controller.insert_publication(publication)
 
@@ -115,11 +137,31 @@ class ScopusTopController:
 
         self.cache_controller.save()
 
-    def load_authors_cache(self, author_id_list, auto_save_interval=20):
+    def load_authors_cache(self, author_id_list, auto_save_interval=20, reload=False):
+        """
+        Loads the author profiles for the authors given by the author id list into the cache, by requesting them
+        from the scopus website.
+
+        On default, only those author profiles, that cannot already be found in the cache will be explicitly
+        requested from the scopus website. When reload is True, all the author profiles will be requested and the
+        possibly existing cache will be overwritten.
+        Also the cache auto saves after the specified amount for the auto save interval, in case of connection
+        error or exception.
+
+        :param author_id_list: The list of author ids for the author profiles to be loaded into the cache
+        :param auto_save_interval: The int amount of author profiles to be requested before the cache saves the
+            progress into persistency.
+        :param reload: The boolean value of whether or not the
+        :return: void
+        """
         cache_author_id_list = self.cache_controller.select_all_author_ids()
 
         # Subtracting the the observed from the cached ids and adding only the left over to the cache
-        difference_author_id_list = list(set(author_id_list) - set(cache_author_id_list))
+        if reload:
+            difference_author_id_list = author_id_list
+        else:
+            difference_author_id_list = list(set(author_id_list) - set(cache_author_id_list))
+
         auto_save_counter = 0
         for author_id in difference_author_id_list:
             # Saving during the process, so progress is not lost after connection error
