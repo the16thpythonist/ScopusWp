@@ -89,12 +89,21 @@ class ScopusTopController:
         # Loading the cache anew
         self.load_cache_observed()
 
-    def load_cache_observed(self):
+    def load_cache_observed(self, load_citations=True):
+        """
+        First loads the observed authors profiles into the cache (requests only those not already in the cache).
+        Based on those author profiles loads the publications of all the observed authors into the cache and if the
+        load_citations flag is set (default), all the publications, that have cited those publications will also be
+        loaded into the cache.
+
+        :param load_citations: boolean flag of whether or not to load the citation publications into the cache as well
+        :return: void
+        """
         # Loading the author profiles into the cache
         self._load_cache_observed_authors()
 
         # Loading the publications of the observed authors into the cache
-        self._load_cache_observed_publications()
+        self._load_cache_observed_publications(load_citations=load_citations)
 
     def load_publications_cache(self, scopus_id_list, auto_save_interval=20, reload=False):
         """
@@ -176,29 +185,43 @@ class ScopusTopController:
         self.cache_controller.save()
 
     def _load_cache_observed_authors(self):
+        """
+        Loads the author profiles for all the observed authors into the cache, but only specifically requests those,
+        which are not already in the cache.
+
+        :return: void
+        """
         # Getting the list of author ids for the observed authors from the observation controller
         observed_author_id_list = self.observation_controller.all_observed_ids()
 
         # Loading all those author profiles of the observed authors into the cache
         self.load_authors_cache(observed_author_id_list)
 
-    def _load_cache_observed_publications(self):
+    def _load_cache_observed_publications(self, load_citations=True):
+        """
+        Loads all the publications of the observed authors into the cache, but only those, that are not already in the
+        cache. Also loads all the publication, that have cited the observed publications into the cache if enabled.
+
+        :param load_citations: boolean flag of whether or not to also load the citation publications into the cache
+        :return: void
+        """
         # Getting the list of publication ids for all the observed authors from the cache
         observed_publication_id_list = self.get_publication_ids_observed()
 
         # Loading all those publications into the cache after having them requested from the scopus website
         self.load_publications_cache(observed_publication_id_list)
 
-        # Getting the citations scopus id list from every one of those publications
-        citation_scopus_id_list = []
-        for scopus_id in observed_publication_id_list:
-            publication = self.cache_controller.select_publication(scopus_id)
+        if load_citations:
+            # Getting the citations scopus id list from every one of those publications
+            citation_scopus_id_list = []
+            for scopus_id in observed_publication_id_list:
+                publication = self.cache_controller.select_publication(scopus_id)
 
-            difference = list(set(publication.citations) - set(citation_scopus_id_list))
-            citation_scopus_id_list += difference
+                difference = list(set(publication.citations) - set(citation_scopus_id_list))
+                citation_scopus_id_list += difference
 
-        # Loading all those publications into the cache as well
-        self.load_publications_cache(citation_scopus_id_list)
+            # Loading all those publications into the cache as well
+            self.load_publications_cache(citation_scopus_id_list)
 
     ######################
     # THE SCOPUS METHODS #
