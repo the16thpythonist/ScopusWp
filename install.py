@@ -151,8 +151,11 @@ class InstallationController:
                     stage += 1
 
             if stage == 3:
-                self.install_database()
-
+                success = self.install_database()
+                if not success:
+                    continue
+                else:
+                    stage += 1
                 stage += 1
 
             if stage == 4:
@@ -191,6 +194,7 @@ class InstallationController:
             self.output.print_success(string)
         except Exception as exception:
             self.output.print_exception(exception)
+            return False
 
         try:
             string = (
@@ -208,6 +212,9 @@ class InstallationController:
             self.output.print_success(string)
         except Exception as exception:
             self.output.print_exception(exception)
+            return False
+
+        return True
 
     def check_database(self):
         string = (
