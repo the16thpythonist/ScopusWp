@@ -82,7 +82,7 @@ class MySQLDatabaseAccess(SQLDatabaseAccessInterface):
         except Exception as exception:
             # Logging the error
             error_string = (
-                'During the handling of the SQL expression {} occurred the following exception {}'
+                'During the handling of the SQL expression "{}" occurred the following exception "{}"'
             ).format(
                 str(sql).replace('\n', ' '),
                 str(exception).replace('\n', ' ')
