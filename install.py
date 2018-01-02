@@ -171,7 +171,10 @@ class InstallationController:
                 stage += 1
 
             if stage == 4:
-                pass
+                done = True
+                continue
+
+        self.output.print_success('INSTALLATION FINISHED')
 
     def install_database(self):
         string = (
