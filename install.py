@@ -165,13 +165,14 @@ class InstallationController:
         self.output.print_header(string)
 
         string = (
-            'Proceeding to install all the database tables'
+            'Proceeding to install all the database tables\n'
         )
         self.output.print_progress(string)
 
         string = (
             'Before installing the new database tables, the installation script will drop the tables by the names '
-            '"publications" and "reference", which will cause them to loose all data'
+            '"publications" and "reference", which will cause them to loose all data they currently contain, if you '
+            'dont want this to happen, you may now backup the data or continue right away.'
         )
         self.output.print_warning(string)
 
@@ -179,17 +180,21 @@ class InstallationController:
 
         try:
             string = (
-                'Deleting all data on the database "{}"'
+                'Deleting all the data in the tables "reference" and "publications" on the database "{}"'
             ).format(self.database)
             self.output.print_progress(string)
             self.db_access.execute('DROP TABLE publications;')
             self.db_access.execute('DROP TABLE reference;')
+            string = (
+                'Dropped the tables "reference" and "publications"'
+            )
+            self.output.print_success(string)
         except Exception as exception:
             self.output.print_exception(exception)
 
         try:
             string = (
-                'Creating the tables'
+                'Creating the tables "reference" and "publications" as needed by the ScopusWp program'
             )
             self.output.print_progress(string)
             from ScopusWp.config import PATH
@@ -197,6 +202,10 @@ class InstallationController:
             with open(sql_setup_path, mode='r+') as file:
                 sql = file.read()
                 self.db_access.execute(sql)
+            string = (
+                'Created the database tables'
+            )
+            self.output.print_success(string)
         except Exception as exception:
             self.output.print_exception(exception)
 
