@@ -32,6 +32,9 @@ class OutputController:
     MAGENTA = '\u001b[35m'
     CYAN = '\u001b[36m'
 
+    BOLD = '\u001b[1m'
+    UNDERLINE = '\u001b[4m'
+
     RESET = '\u001b[0m'
 
     def __init__(self):
@@ -47,7 +50,10 @@ class OutputController:
         self.print_error(exception_string)
 
     def print_header(self, message):
-        print(message)
+        header_string = '\n{}\n'.format(message)
+        header_string = self.get_bold(header_string)
+        header_string = self.get_underline(header_string)
+        print(header_string)
 
     def print_progress(self, message):
         progress_string = '{}...'.format(message)
@@ -86,6 +92,12 @@ class OutputController:
 
     def get_green(self, string):
         return '{}{}{}'.format(self.GREEN, string, self.RESET)
+
+    def get_bold(self, string):
+        return '{}{}{}'.format(self.BOLD, string, self.RESET)
+
+    def get_underline(self, string):
+        return '{}{}{}'.format(self.UNDERLINE, string, self.RESET)
 
 
 class InputController:
