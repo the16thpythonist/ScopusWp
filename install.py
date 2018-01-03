@@ -1,5 +1,8 @@
 import importlib
 import threading
+import configparser
+import pathlib
+import pickle
 import os
 
 
@@ -140,34 +143,37 @@ class InstallationController:
         self.password = None
         self.host = None
 
+        self.path = None
+
+        self.config_path = None
+        self.authors_path = None
+        self.publications_cache = None
+        self.ids_json = None
+
     def run(self):
 
         done = False
         stage = 0
         while not done:
+            self.input.pause()
             if stage == 0:
+                if not self.check_import():
+                    continue
                 stage += 1
 
             if stage == 1:
-                success = self.check_import()
-                if not success:
+                if not self.install_files():
                     continue
-                else:
-                    stage += 1
+                stage += 1
 
             if stage == 2:
-                success = self.check_database()
-                if not success:
+                if not self.check_database():
                     continue
-                else:
-                    stage += 1
+                stage += 1
 
             if stage == 3:
-                success = self.install_database()
-                if not success:
+                if not self.install_database():
                     continue
-                else:
-                    stage += 1
                 stage += 1
 
             if stage == 4:
@@ -175,6 +181,146 @@ class InstallationController:
                 continue
 
         self.output.print_success('INSTALLATION FINISHED')
+
+    def progress(self, message):
+        self.output.print_progress(message)
+
+    def error(self, message, exception):
+        self.output.print_error(message)
+        self.output.print_exception(exception)
+
+    def success(self, message):
+        self.output.print_success(message)
+
+    def install_files(self):
+        self.output.print_header('INSTALLING THE NECESSARY FILES')
+
+        # Getting the base path of the ScopusWp package
+        try:
+            self.progress('Fetching the path of the package from the config module')
+            from ScopusWp.config import PATH
+            self.path = PATH
+            self.success('Successfully fetched the path "{}"'.format(PATH))
+        except Exception as exception:
+            self.error('The Path could not be fetched from the config', exception)
+
+        # installing the config file
+        if not self.install_config_file():
+            return False
+
+        if not self.install_cache_files():
+            return False
+
+        if not self.install_ids_json():
+            return  False
+
+        return True
+
+    def install_config_file(self):
+        # Using the path of the package to assemble the path for the config file and then creating a path object
+        # and saving it as a instance attribute
+        config_file_path_string = '{}/config.ini'.format(self.path)
+        self.config_path = pathlib.Path(config_file_path_string)
+
+        try:
+            self.progress('Creating entries for the config file')
+            config = configparser.ConfigParser()
+            config.read(config_file_path_string)
+
+            self.progress('creating scopus entries')
+            config['SCOPUS'] = {}
+            config['SCOPUS']['api_key'] = ''
+            config['SCOPUS']['url'] = ''
+
+            self.progress('creating kit open entries')
+            config['KITOPEN'] = {}
+            config['KITOPEN']['url'] = ''
+
+            self.progress('creating wordpress entries')
+            config['WORDPRESS'] = {}
+            config['WORDPRESS']['url'] = ''
+            config['WORDPRESS']['username'] = ''
+            config['WORDPRESS']['password'] = ''
+
+            self.progress('creating mysql entries')
+            config['MYSQL'] = {}
+            config['MYSQL']['host'] = ''
+            config['MYSQL']['database'] = ''
+            config['MYSQL']['username'] = ''
+            config['MYSQL']['password'] = ''
+
+            self.progress('Saving the config file')
+            config.write(self.config_path.open(mode='w+'))
+            self.success('Config file created')
+        except Exception as exception:
+            self.error('There was en error during the creation of the config file', exception)
+            return False
+
+        return True
+
+    def install_cache_files(self):
+        try:
+            self.progress('Creating the folder, which contains the cache files')
+            # Using the path of the package to assemble the path of the cache folder and then creating the cache folder
+            # with a pathlib path object
+            cache_folder_path_string = '{}/cache'.format(self.path)
+            cache_folder_path = pathlib.Path(cache_folder_path_string)
+            if not cache_folder_path.exists():
+                cache_folder_path.mkdir()
+            self.success('Cache folder created')
+        except Exception as exception:
+            self.error('There was an error creating the cache folder', exception)
+            return False
+
+        try:
+            self.progress('creating the path to the publications cache')
+            # Creating the string file paths to the publications cache and the according path object
+            publications_cache_path_string = '{}/publications.pkl'.format(cache_folder_path_string)
+            publications_cache_path = pathlib.Path(publications_cache_path_string)
+            self.progress('creating the publications cache file')
+            with publications_cache_path.open(mode='wb+') as file:
+                self.progress('Pickle dumping an empty dict to the file')
+                pickle.dump({}, file)
+            self.success('publications cache was created')
+        except Exception as exception:
+            self.error('there was an error during the creation of the "publications" cache', exception2)
+            return False
+
+        try:
+            self.progress('creating the path to the authors cache')
+            authors_cache_path_string = '{}/authors.pkl'.format(self.path)
+            authors_cache_path = pathlib.Path(authors_cache_path_string)
+            self.progress('creating the authors cache file')
+            with authors_cache_path.open(mode='wb+') as file:
+                self.progress('pickle dumping an empty dict into the file')
+                pickle.dump({}, file)
+            self.success('authors cache was created')
+        except Exception as exception:
+            self.error('there was en error during the creation of the "authors" cache', exception)
+            return False
+
+        return True
+
+    def install_ids_json(self):
+        try:
+            self.progress('Creating the path to the ids json file')
+            ids_json_path_string = '{}/ids.json'.format(self.path)
+            ids_json_path = pathlib.Path(ids_json_path_string)
+            self.progress('Creating the ids json file')
+            with ids_json_path.open(mode='w+') as file:
+                file.write(
+                    '{\n'
+                    'used: []\n'
+                    'unused: []\n'
+                    'pointer: 0\n'
+                    '}\n'
+                )
+            self.success('ids json storage was created')
+        except Exception as exception:
+            self.error('There was an error during the creation of the ids json file', exception)
+            return False
+
+        return True
 
     def install_database(self):
         string = (
