@@ -405,11 +405,23 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
         self.execute(sql)
 
 
-
 class TempPersistentSequenceModel:
 
-    def __init__(self):
-        pass
+    def __init__(self, id, folder_path):
+        # This is the id of the model, which enables to identify all the files which belong to one model, which enables
+        # the possibility of multiple models using the same folder for storage
+        self.id = id
+
+        # The path to the folder, which is supposed to contain all the files for the model
+        self.path_string = folder_path
+
+        # Stores the max amount of items in the sequence, used for creating the file names for the files which contain
+        # the new objects
+        self.index_counter = 0
+
+        # The keys are the path strings to the files, which contain the binary data to the objects and the values are
+        # the actual values
+        self.content = {}
 
     def load(self):
         pass
@@ -420,10 +432,26 @@ class TempPersistentSequenceModel:
     def load_object(self, path):
         pass
 
-    def save_object(self, object):
-        pass
+    def save_object(self, obj):
+        # Incrementing the counter for the saved files
+        self.index_counter += 1
 
-    def create_path(self, object):
+        # Creating the path for the file and saving the key value tuple with path and object in the internal dict
+        file_path_string = self.create_path(obj)
+        self.content[file_path_string] = obj
+
+        # Actually creating the file and saving the object as pickled data into it
+        with open(file_path_string, mode='wb+') as file:
+            pickle.dump(obj, file)
+
+    def create_path(self, obj):
+        # The file name for saving an object consists of the class name of the object saved, the index counter to show
+        # which part of the sequence it is and the id of the model.
+        object_class_name = str(obj.__class__)
+        file_name_string = '{}_{}_{}.pkl'.format(object_class_name, str(self.index_counter), str(self.id))
+
+        file_path_string = '{}/{}'.format(self.path_string, file_name_string)
+        return file_path_string
 
     def append(self):
         pass
