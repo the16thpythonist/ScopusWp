@@ -406,7 +406,7 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
 
 
 
-class TempController:
+class TempPersistentSequenceModel:
 
     def __init__(self):
         pass
