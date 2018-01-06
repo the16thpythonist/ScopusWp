@@ -491,4 +491,4 @@ class TempPersistentSequenceModel:
         self.save_info()
 
     def __iter__(self):
-        return self.content.keys().__iter__()
+        return self.content.values().__iter__()
