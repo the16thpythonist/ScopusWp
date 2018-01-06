@@ -428,13 +428,39 @@ class TempPersistentSequenceModel:
         self.content = {}
 
     def load(self):
-        pass
+        # Loading the info file, which will create a entry for each file path in the content dict with the dummy value
+        # None
+        self.load_info()
+
+        for path in self.content.keys():
+            # Loading the objects
+            self.load_object(path)
 
     def load_info(self):
-        pass
+        with open(self.info_path_string, mode='r') as file:
+            info_dict = json.load(file)
+
+        # Assigning the saved index counter
+        self.index_counter = info_dict['counter']
+        # Adding a dummy entry for every file path listed in the info file
+        for path in info_dict['paths']:
+            self.content[path] = None
 
     def load_object(self, path):
-        pass
+        with open(path, mode='rb') as file:
+            obj = pickle.load(file)
+            self.content[path] = obj
+
+    def save_info(self):
+        # Creating the info dict
+        info_dict = {
+            'counter': self.index_counter,
+            'paths': list(self.content.keys())
+        }
+
+        # Actually saving that dict as a json to the file
+        with open(self.info_path_string, mode='w+') as file:
+            json.dump(info_dict, file)
 
     def save_object(self, obj, path):
         # Actually creating the file and saving the object as pickled data into it
@@ -458,8 +484,9 @@ class TempPersistentSequenceModel:
         file_path_string = self.create_path(obj)
         self.content[file_path_string] = obj
 
-        # Saving the object into a file
+        # Saving the object into a file and saving the new info data
         self.save_object(obj, file_path_string)
+        self.save_info()
 
-    def remove(self):
-        pass
+    def __iter__(self):
+        return self.content.keys().__iter__()
