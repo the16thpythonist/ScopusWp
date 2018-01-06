@@ -415,6 +415,10 @@ class TempPersistentSequenceModel:
         # The path to the folder, which is supposed to contain all the files for the model
         self.path_string = folder_path
 
+        # The ath to the info file. The info file contains the info about the current state of the counter for the model
+        # of the specific id and the list of paths belonging to that model
+        self.info_path_string = '{}/_info_{}.json'.format(self.path_string, self.id)
+
         # Stores the max amount of items in the sequence, used for creating the file names for the files which contain
         # the new objects
         self.index_counter = 0
@@ -426,22 +430,15 @@ class TempPersistentSequenceModel:
     def load(self):
         pass
 
-    def load_cache_info(self):
+    def load_info(self):
         pass
 
     def load_object(self, path):
         pass
 
-    def save_object(self, obj):
-        # Incrementing the counter for the saved files
-        self.index_counter += 1
-
-        # Creating the path for the file and saving the key value tuple with path and object in the internal dict
-        file_path_string = self.create_path(obj)
-        self.content[file_path_string] = obj
-
+    def save_object(self, obj, path):
         # Actually creating the file and saving the object as pickled data into it
-        with open(file_path_string, mode='wb+') as file:
+        with open(path, mode='wb+') as file:
             pickle.dump(obj, file)
 
     def create_path(self, obj):
@@ -453,8 +450,16 @@ class TempPersistentSequenceModel:
         file_path_string = '{}/{}'.format(self.path_string, file_name_string)
         return file_path_string
 
-    def append(self):
-        pass
+    def append(self, obj):
+        # Incrementing the counter for the saved files
+        self.index_counter += 1
+
+        # Creating the path for the file and saving the key value tuple with path and object in the internal dict
+        file_path_string = self.create_path(obj)
+        self.content[file_path_string] = obj
+
+        # Saving the object into a file
+        self.save_object(obj, file_path_string)
 
     def remove(self):
         pass
