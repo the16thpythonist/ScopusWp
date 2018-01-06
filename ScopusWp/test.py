@@ -158,4 +158,18 @@ def test_update_publications_website():
     controller.update_publications_website()
 
 
-test_scopus_cache_observed()
+def test_affiliation_script():
+
+    from ScopusWp.controller import TopController
+
+    controller = TopController()
+
+    author_dict = {
+        ('Tomy', 'Rolo'): [56118820400, 35194644400, 35277157300]
+    }
+
+    affiliation_dict = controller.scopus_controller.explore_author_affiliations(author_dict)
+    pprint(affiliation_dict)
+
+
+test_affiliation_script()

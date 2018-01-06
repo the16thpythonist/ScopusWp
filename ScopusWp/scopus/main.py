@@ -1,11 +1,14 @@
-from ScopusWp.scopus.data import ScopusPublication
+from ScopusWp.scopus.data import ScopusPublication, ScopusAuthor
 
 from ScopusWp.scopus.observe import ScopusObservationController
 
 from ScopusWp.scopus.persistency import ScopusBackupController, ScopusCacheController
 from ScopusWp.scopus.persistency import ScopusPublicationPickleCacheModel, ScopusAuthorPickleCacheModel
+from ScopusWp.scopus.persistency import TempPersistentSequenceModel
 
 from ScopusWp.scopus.scopus import ScopusController
+
+from ScopusWp.config import PATH
 
 # TODO: Implement massive logging
 
@@ -21,6 +24,62 @@ class ScopusTopController:
     #####################
     # TOP LEVEL METHODS #
     #####################
+
+    def explore_author_affiliations(self, author_dict):
+        author_affiliation_dict = {}
+
+        # Creating the temp storage list to save data persistently in case of crash
+        temp_list = TempPersistentSequenceModel('au_aff', PATH + '/temp')
+        temp_list.load()
+
+        # Loading the values, that were already saved in the temp list
+        for temp_dict in temp_list:
+            author_affiliation_dict += temp_dict
+
+        for name_tuple, author_id_list in author_dict.items():
+            # Only really processing and requesting for a user, if that user is not already in the dict
+            if name_tuple not in author_affiliation_dict.keys():
+                # Getting the affiliation id list for each of the author ids and saving the list as the value to the key
+                # being the author id
+                affiliation_dict = {}
+                for author_id in author_id_list:
+                    affiliation_id_list = self.get_affiliations_author(author_id)
+                    affiliation_dict[author_id] = affiliation_id_list
+                # Adding the affiliation dict as the value to the name tuple key to the main dict
+                temp_dict = {name_tuple: affiliation_dict}
+                author_affiliation_dict[name_tuple] += temp_dict
+                # Saving the temp dict, which represents the main entry for a single author
+                temp_list.append(temp_dict)
+
+        return author_affiliation_dict
+
+    def get_affiliations_author(self, author_id):
+        """
+        Requests the author profile for the author from the scopus system and then all the publications of that author.
+        Goes through all publications and returns a list of all the different affiliation ids, which the author had
+        in the history of all his publications.
+
+        :param author_id: The id of the author for which to get the affiliations
+        :return:
+        """
+        # Getting the author profile for the author id
+        author_profile = self.scopus_controller.get_author_profile(author_id)
+        # Getting all the publications for the author
+        publication_list = self.scopus_controller.get_multiple_publications(author_profile.publications)
+
+        affiliation_list = []
+        for publication in publication_list:  # type: ScopusPublication
+            # Getting the author entry from the publication object, that belongs to the author specified by the passed
+            # author id
+            author = publication.authors[0]
+            for author in publication.authors:  # type: ScopusAuthor
+                if int(author_profile) == int(author):
+                    break
+
+            difference = list(set(author.affiliations) - set(affiliation_list))
+            affiliation_list += difference
+
+        return affiliation_list
 
     def get_publication(self, scopus_id):
         # Checking if the publication is in the cache and returning the cached value if possible
