@@ -403,3 +403,30 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
     def wipe(self):
         sql = "TRUNCATE publications"
         self.execute(sql)
+
+
+
+class TempController:
+
+    def __init__(self):
+        pass
+
+    def load(self):
+        pass
+
+    def load_cache_info(self):
+        pass
+
+    def load_object(self, path):
+        pass
+
+    def save_object(self, object):
+        pass
+
+    def create_path(self, object):
+
+    def append(self):
+        pass
+
+    def remove(self):
+        pass
