@@ -1,4 +1,5 @@
 from setuptools import setup
+from setuptools import find_packages
 
 import configparser
 import os
@@ -119,13 +120,14 @@ class IdJsonInstallationController:
 
 setup(
     name='scopus.wp',
-    version='0.0.0.dev7',
+    version='0.0.0.dev16',
     description='A tool for a wordpress server which will automatically post science publications from scopus database',
     url='https://github.com/the16thpythonist/ScopusWp',
     author='Jonas Teufel',
     author_email='jonseb1998@gmail.com',
     license='MIT',
-    packages=['scopus'],
+    packages=find_packages(),
+    include_package_data=True,
     install_requires=[
         'requests>=2.0',
         'mysqlclient>=1.2',
@@ -135,18 +137,6 @@ setup(
     ],
     python_requires='>=3, <4',
     package_data={
-        '': ['*.sql']
+        '': ['*.sql', '*.json', '*.pkl', '*.ini']
     },
-    py_modules=[
-        'install',
-        'main',
-        'data',
-        'database',
-        'controller',
-        'config',
-        'test',
-        'view',
-        'wordpress',
-        'reference'
-    ]
 )

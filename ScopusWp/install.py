@@ -606,5 +606,10 @@ def main(start_point):
 
 
 if __name__ == '__main__':
-    installation_controller = InstallationController()
-    installation_controller.run()
+    from ScopusWp.database import MySQLDatabaseAccess
+    from ScopusWp.config import PATH
+
+    access = MySQLDatabaseAccess()
+    with open('{}/setup.sql'.format(PATH), mode='r') as file:
+        sql = file.read()
+        access.execute(sql)
