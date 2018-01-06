@@ -9,6 +9,7 @@ import json
 import pathlib
 
 import pickle
+import os
 
 
 ###############
@@ -437,14 +438,15 @@ class TempPersistentSequenceModel:
             self.load_object(path)
 
     def load_info(self):
-        with open(self.info_path_string, mode='r') as file:
-            info_dict = json.load(file)
+        if os.path.exists(self.info_path_string):
+            with open(self.info_path_string, mode='r') as file:
+                info_dict = json.load(file)
 
-        # Assigning the saved index counter
-        self.index_counter = info_dict['counter']
-        # Adding a dummy entry for every file path listed in the info file
-        for path in info_dict['paths']:
-            self.content[path] = None
+            # Assigning the saved index counter
+            self.index_counter = info_dict['counter']
+            # Adding a dummy entry for every file path listed in the info file
+            for path in info_dict['paths']:
+                self.content[path] = None
 
     def load_object(self, path):
         with open(path, mode='rb') as file:

@@ -34,7 +34,7 @@ class ScopusTopController:
 
         # Loading the values, that were already saved in the temp list
         for temp_dict in temp_list:
-            author_affiliation_dict += temp_dict
+            author_affiliation_dict.update(temp_dict)
 
         for name_tuple, author_id_list in author_dict.items():
             # Only really processing and requesting for a user, if that user is not already in the dict
@@ -47,7 +47,7 @@ class ScopusTopController:
                     affiliation_dict[author_id] = affiliation_id_list
                 # Adding the affiliation dict as the value to the name tuple key to the main dict
                 temp_dict = {name_tuple: affiliation_dict}
-                author_affiliation_dict[name_tuple] += temp_dict
+                author_affiliation_dict.update(temp_dict)
                 # Saving the temp dict, which represents the main entry for a single author
                 temp_list.append(temp_dict)
 
