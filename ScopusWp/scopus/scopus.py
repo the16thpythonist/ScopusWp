@@ -19,7 +19,7 @@ class ScopusBaseController:
 
         # Getting the logger for the the scopus part of the project
         scopus_logger_id = cfg.SCOPUS_LOGGING_EXTENSION
-        self.logger = logging.getLogger(scopus_logger_id)
+        self.logger = logging.getLogger('scopus')
 
         # Getting the base url to the scopus site from the config
         self.url_base = self.config['SCOPUS']['url']
@@ -218,10 +218,9 @@ class ScopusAffiliationController(ScopusBaseController):
         if isinstance(dictionary, dict) and key in dictionary.keys():
             return dictionary[key]
         else:
-            error_message = 'There is no item to the key "{}" for the affiliation "{}" with the sub dict: {}'.format(
+            error_message = 'There is no item to the key "{}" for the affiliation "{}"'.format(
                 key,
                 self.current_affiliation_id,
-                str(dictionary)
             )
             self.logger.warning(error_message)
             # Returning the default value, so that the program can still run in case there was no item in the dict
@@ -443,10 +442,9 @@ class ScopusAuthorController(ScopusBaseController):
         if isinstance(dictionary, dict) and key in dictionary.keys():
             return dictionary[key]
         else:
-            error_message = 'There is no item to the key "{}" for the author "{}" with the sub dict: {}'.format(
+            error_message = 'There is no item to the key "{}" for the author "{}"'.format(
                 key,
                 self.current_author_id,
-                str(dictionary)
             )
             self.logger.warning(error_message)
             # Returning the default value, so that the program can still run in case there was no item in the dict
@@ -759,10 +757,9 @@ class ScopusPublicationController(ScopusBaseController):
         elif isinstance(dictionary, list) and key < len(dictionary):
             return dictionary[key]
         else:
-            error_message = 'There is no item to the key "{}" in the publication "{}" with the sub dict: {}'.format(
+            error_message = 'There is no item to the key "{}" in the publication "{}"'.format(
                 key,
                 self.current_scopus_id,
-                str(dictionary)
             )
             self.logger.warning(error_message)
             # Returning the default value, so that the program can still run in case there was no item in the dict
