@@ -1,2 +1,4 @@
 include *.sql *.ini *.json *.pkl
-recursive_include *
+include cache/*
+include scopus/*
+include logs/*

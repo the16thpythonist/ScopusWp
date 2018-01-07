@@ -13,6 +13,12 @@ from ScopusWp.config import PATH
 # TODO: Implement massive logging
 
 
+# TODO: Make a controller for temp Persistency
+# Todo: Make the new methods use the get methods that also cache
+
+# todo: Make new cache based on database cuz faster
+# todo: Logging mal richtig angehen
+
 class ScopusTopController:
 
     def __init__(self):
