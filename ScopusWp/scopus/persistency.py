@@ -406,8 +406,6 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
         self.execute(sql)
 
 
-# Todo: add naming function as optional parameter
-
 class TempPersistentSequenceModel:
 
     def __init__(self, id, folder_path, name_function=None):

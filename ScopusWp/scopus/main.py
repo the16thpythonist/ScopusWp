@@ -10,6 +10,8 @@ from ScopusWp.scopus.scopus import ScopusController
 
 from ScopusWp.config import PATH
 
+import logging
+
 # TODO: Implement massive logging
 
 
@@ -27,21 +29,43 @@ class ScopusTopController:
         self.backup_controller = ScopusBackupController()
         self.cache_controller = ScopusCacheController(ScopusPublicationPickleCacheModel, ScopusAuthorPickleCacheModel)
 
+        self.logger = logging.getLogger('ScopusTop')
+
     #####################
     # TOP LEVEL METHODS #
     #####################
 
     def explore_author_affiliations(self, author_dict):
+        """
+        Gets the list of all affiliation ids occurring in the history of all the publications to a author id of an
+        author.
+
+        Takes a dict, that assigns a list of possible author ids to a string tuple with last name and first name of
+        an author
+        Returns a dict with the string name tuple as keys and the values being dicts, that assigns list of affiliation
+        ids to the author ids given in the input dict
+        Example:
+        IN: {('john', 'doe'): [1987623, 1294401]}
+        OUT: {('john', 'doe'): {1987623: [8383992, 12387293],
+                                1294401: [2312123]}
+        :param author_dict: {('first name', 'last name') -> [author ids]}}
+        :return: {('first name', 'last name') -> {author id -> [affiliation ids]}}
+        """
         author_affiliation_dict = {}
 
+        self.logger.info('loading temp storage for author aff.')
+
+        # The naming function for the storage files
+        def name_function(obj): return ''.join(obj.keys()[0])
         # Creating the temp storage list to save data persistently in case of crash
-        temp_list = TempPersistentSequenceModel('au_aff', PATH + '/temp')
+        temp_list = TempPersistentSequenceModel('au_aff', PATH + '/temp', name_function)
         temp_list.load()
 
         # Loading the values, that were already saved in the temp list
         for temp_dict in temp_list:
             author_affiliation_dict.update(temp_dict)
 
+        self.logger.info('requesting publications for affiliations')
         for name_tuple, author_id_list in author_dict.items():
             # Only really processing and requesting for a user, if that user is not already in the dict
             if name_tuple not in author_affiliation_dict.keys():
@@ -57,6 +81,7 @@ class ScopusTopController:
                 # Saving the temp dict, which represents the main entry for a single author
                 temp_list.append(temp_dict)
 
+        self.logger.info('finished exploring affiliations')
         return author_affiliation_dict
 
     def get_affiliations_author(self, author_id):
@@ -345,4 +370,3 @@ class ScopusTopController:
 
     def insert_multiple_publications_cache(self, publication_list):
         self.cache_controller.insert_multiple_publications(publication_list)
-
