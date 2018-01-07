@@ -410,7 +410,7 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
 
 class TempPersistentSequenceModel:
 
-    def __init__(self, id, folder_path):
+    def __init__(self, id, folder_path, name_function=None):
         # This is the id of the model, which enables to identify all the files which belong to one model, which enables
         # the possibility of multiple models using the same folder for storage
         self.id = id
@@ -429,6 +429,11 @@ class TempPersistentSequenceModel:
         # The keys are the path strings to the files, which contain the binary data to the objects and the values are
         # the actual values
         self.content = {}
+
+        if name_function is None:
+            self.name_function = lambda x: str(x.__class__).replace('<class', '').replace("'", '').replace('>', '')
+        else:
+            self.name_function = name_function
 
     def load(self):
         # Loading the info file, which will create a entry for each file path in the content dict with the dummy value
@@ -474,8 +479,8 @@ class TempPersistentSequenceModel:
     def create_path(self, obj):
         # The file name for saving an object consists of the class name of the object saved, the index counter to show
         # which part of the sequence it is and the id of the model.
-        object_class_name = str(obj.__class__).replace('<class', '').replace("'", '').replace('>', '')
-        file_name_string = '{}_{}_{}.pkl'.format(object_class_name, str(self.index_counter), str(self.id))
+        object_file_name = self.name_function(obj)
+        file_name_string = '{}_{}_{}.pkl'.format(object_file_name, str(self.index_counter), str(self.id))
 
         file_path_string = '{}/{}'.format(self.path_string, file_name_string)
         return file_path_string
