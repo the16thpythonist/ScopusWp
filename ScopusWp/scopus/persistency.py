@@ -478,7 +478,7 @@ class TempPersistentSequenceModel:
         # The file name for saving an object consists of the class name of the object saved, the index counter to show
         # which part of the sequence it is and the id of the model.
         object_file_name = self.name_function(obj)
-        file_name_string = '{}_{}_{}.pkl'.format(object_file_name, str(self.index_counter), str(self.id))
+        file_name_string = '{}_{}_{}.pkl'.format(str(self.id), str(self.index_counter), object_file_name)
 
         file_path_string = '{}/{}'.format(self.path_string, file_name_string)
         return file_path_string

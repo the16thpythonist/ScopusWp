@@ -56,7 +56,7 @@ class ScopusTopController:
         self.logger.info('loading temp storage for author aff.')
 
         # The naming function for the storage files
-        def name_function(obj): return ''.join(obj.keys()[0])
+        def name_function(obj): return ''.join(list(obj.keys())[0])
         # Creating the temp storage list to save data persistently in case of crash
         temp_list = TempPersistentSequenceModel('au_aff', PATH + '/temp', name_function)
         temp_list.load()
