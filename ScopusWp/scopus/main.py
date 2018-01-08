@@ -4,6 +4,7 @@ from ScopusWp.scopus.observe import ScopusObservationController
 
 from ScopusWp.scopus.persistency import ScopusBackupController, ScopusCacheController
 from ScopusWp.scopus.persistency import ScopusPublicationPickleCacheModel, ScopusAuthorPickleCacheModel
+from ScopusWp.scopus.persistency import ScopusPublicationDatabaseCacheModel, ScopusAuthorDatabaseCacheModel
 from ScopusWp.scopus.persistency import TempPersistentSequenceModel
 
 from ScopusWp.scopus.scopus import ScopusController
@@ -21,13 +22,17 @@ import logging
 # todo: Make new cache based on database cuz faster
 # todo: Logging mal richtig angehen
 
+
 class ScopusTopController:
 
     def __init__(self):
         self.observation_controller = ScopusObservationController()
         self.scopus_controller = ScopusController()
         self.backup_controller = ScopusBackupController()
-        self.cache_controller = ScopusCacheController(ScopusPublicationPickleCacheModel, ScopusAuthorPickleCacheModel)
+        self.cache_controller = ScopusCacheController(
+            ScopusPublicationDatabaseCacheModel,
+            ScopusAuthorDatabaseCacheModel
+        )
 
         self.logger = logging.getLogger('ScopusTop')
 
@@ -112,6 +117,17 @@ class ScopusTopController:
 
         return affiliation_list
 
+    def get_author_profile(self, author_id):
+        # Checking if the author profile is already in the cache
+        is_cached = self.cache_controller.contains_author_profile(author_id)
+        if is_cached:
+            author_profile = self.cache_controller.select_author_profile(author_id)
+        else:
+            # Actually requesting from scopus website and then writing back into the cache
+            author_profile = self.scopus_controller.get_author_profile(author_id)
+            self.cache_controller.insert_author_profile(author_profile)
+        return author_profile
+
     def get_publication(self, scopus_id):
         # Checking if the publication is in the cache and returning the cached value if possible
         is_cached = self.cache_controller.contains_publication(scopus_id)
@@ -120,6 +136,8 @@ class ScopusTopController:
         else:
             # If the publication is not cached, getting it from the scopus website
             publication = self.scopus_controller.get_publication(scopus_id)
+            # And then writing it into the cache for the next time
+            self.cache_controller.insert_publication(publication)
         return publication
 
     def get_multiple_publications(self, scopus_id_list):
