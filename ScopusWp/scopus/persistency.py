@@ -235,6 +235,54 @@ class ScopusPublicationPickleCacheModel(PublicationPersistencyInterface):
             pickle.dump(self.content, file)
 
 
+class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
+
+    def __init__(self):
+        AuthorProfilePersistencyInterface.__init__(self)
+
+        self.database_access = MySQLDatabaseAccess()
+
+        self.config = Config.get_instance()
+        self.database_name = self.config['MYSQL']['author_cache_table']
+
+    def insert(self, author):
+        # Converting all the data into json so it fits into the data base columns
+
+        # Turning the list of publication scopus ids for the author into a json string
+        publication_list_json = json.dumps(author.publications).replace('"', "'")
+
+        sql = (
+            'INSERT IGNORE INTO '
+            '{database} ('
+            'author_id,'
+            'first_name, '
+            'last_name, '
+            'h_index, '
+            'citation_count, '
+            'document_count, '
+            'publications) '
+            'VALUES ('
+            '{author_id},'
+            '{first_name},'
+            '{last_name},'
+            '{h_index},'
+            '{citation_count},'
+            '{document_count},'
+            '{publications})'
+        ).format(
+            author_id=author.id,
+            first_name=author.first_name,
+            last_name=author.last_name,
+            h_index=author.h_index,
+            document_count=author.document_count,
+            citation_count=author.citation_count,
+            publications=publication_list_json
+        )
+
+        self.database_access.execute(sql)
+
+
+
 class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
 
     def __init__(self):
@@ -243,7 +291,7 @@ class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
         self.database_access = MySQLDatabaseAccess()
 
         self.config = Config.get_instance()
-        self.database_name = self.config['MYSQL']['publication_cache_database']
+        self.database_name = self.config['MYSQL']['publication_cache_table']
 
     def insert(self, publication):
         # Converting all the data so it fits into a database data column
@@ -398,7 +446,7 @@ class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
         sql = (
             'SELECT scopus_id FROM {database}'
         ).format(
-            database = self.database_name
+            database=self.database_name
         )
 
         rows = self.database_access.select(sql)
