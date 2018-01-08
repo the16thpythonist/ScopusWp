@@ -334,8 +334,8 @@ class ScopusAuthorProfile(ScopusIdentifierInterface):
         ScopusIdentifierInterface.__init__(self)
 
         self.id = author_id
-        self.first_name = first_name
-        self.last_name = last_name
+        self.first_name = unidecode(first_name).replace("'", '')
+        self.last_name = unidecode(last_name).replace("'", '')
         self.h_index = h_index
         self.citation_count = citation_count
         self.document_count = document_count
