@@ -165,7 +165,15 @@ def test_affiliation_script():
     controller = TopController()
 
     author_dict = {
-        ('Tomy', 'Rolo'): [56118820400, 35194644400, 35277157300]
+        ('Tomy', 'Rolo'): [56118820400, 35194644400, 35277157300],
+        ('An', 'Bao Ngoc'): [5719208222],
+        ('Balzer', 'Matthias'): [35519411500],
+        ('Belgarian', 'Armen'): [38560996700],
+        ('Berger', 'Lutz'): [40661118100],
+        ('Blank', 'Thomas'): [5681921880],
+        ('Bormann', 'Dietmar'): [55231514500],
+        ('Caselle', 'Michele'): [57194376511],
+        ('Chandna', 'Swati'): [36974957500]
     }
 
     affiliation_dict = controller.scopus_controller.explore_author_affiliations(author_dict)
