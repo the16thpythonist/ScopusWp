@@ -1,6 +1,6 @@
 from ScopusWp.database import MySQLDatabaseAccess
 
-from ScopusWp.scopus.data import ScopusPublication
+from ScopusWp.scopus.data import ScopusPublication, ScopusAuthorProfile
 from ScopusWp.scopus.data import from_dict, to_dict
 
 from ScopusWp.config import PATH, Config
@@ -281,6 +281,90 @@ class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
 
         self.database_access.execute(sql)
 
+    def select(self, author_id):
+        sql = (
+            'SELECT ('
+            'author_id, '
+            'first_name, '
+            'last_name, '
+            'h_index, '
+            'citation_count, '
+            'document_count, '
+            'publications'
+            'FROM {database} WHERE author_id={author_id}'
+        ).format(
+            database=self.database_name,
+            author_id=author_id
+        )
+
+        row_list = self.database_access.select(sql)
+
+        if len(row_list) != 0:
+            row = row_list[0]
+            author_profile = self._author_profile_from_list(row)
+            return author_profile
+
+    @staticmethod
+    def _author_profile_from_list(row):
+        author_id = row[0]
+        first_name = row[1]
+        last_name = row[2]
+        h_index = row[3]
+        citation_count = row[4]
+        document_count = row[5]
+
+        publications_json_string = row[6]
+        publication_list = json.loads(publications_json_string)
+
+        author_profile = ScopusAuthorProfile(
+            author_id,
+            first_name,
+            last_name,
+            h_index,
+            citation_count,
+            document_count,
+            publication_list
+        )
+
+        return author_profile
+
+    def select_all(self):
+
+        sql = (
+            'SELECT ('
+            'author_id, '
+            'first_name, '
+            'last_name, '
+            'h_index, '
+            'citation_count, '
+            'document_count, '
+            'publications'
+            'FROM {database}'
+        ).format(
+            database=self.database_name
+        )
+
+        row_list = self.database_access.select(sql)
+        author_profile_list = []
+        for row in row_list:
+            author_profile = self._author_profile_from_list(row)
+            author_profile_list.append(author_profile)
+
+        return author_profile_list
+
+    def contains(self, author):
+
+        sql = (
+            'SELECT * FROM {database}'
+        ).format(
+            database=self.database_name
+        )
+
+        row_list = self.database_access.select(sql)
+        return len(row_list) > 0
+
+    def save(self):
+        self.database_access.save()
 
 
 class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
