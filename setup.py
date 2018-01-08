@@ -120,7 +120,7 @@ class IdJsonInstallationController:
 
 setup(
     name='scopus.wp',
-    version='0.0.0.dev21',
+    version='0.0.0.dev29',
     description='A tool for a wordpress server which will automatically post science publications from scopus database',
     url='https://github.com/the16thpythonist/ScopusWp',
     author='Jonas Teufel',

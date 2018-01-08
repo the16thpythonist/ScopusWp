@@ -95,25 +95,27 @@ class ScopusTopController:
         Goes through all publications and returns a list of all the different affiliation ids, which the author had
         in the history of all his publications.
 
+        Uses caching on default.
         :param author_id: The id of the author for which to get the affiliations
         :return:
         """
         # Getting the author profile for the author id
-        author_profile = self.scopus_controller.get_author_profile(author_id)
+        author_profile = self.get_author_profile(author_id)
         # Getting all the publications for the author
-        publication_list = self.scopus_controller.get_multiple_publications(author_profile.publications)
+        publication_list = self.get_multiple_publications(author_profile.publications)
 
         affiliation_list = []
         for publication in publication_list:  # type: ScopusPublication
             # Getting the author entry from the publication object, that belongs to the author specified by the passed
             # author id
-            author = publication.authors[0]
-            for author in publication.authors:  # type: ScopusAuthor
-                if int(author_profile) == int(author):
-                    break
+            if len(publication.authors) > 0:
+                author = publication.authors[0]
+                for author in publication.authors:  # type: ScopusAuthor
+                    if int(author_profile) == int(author):
+                        break
 
-            difference = list(set(author.affiliations) - set(affiliation_list))
-            affiliation_list += difference
+                difference = list(set(author.affiliations) - set(affiliation_list))
+                affiliation_list += difference
 
         return affiliation_list
 
@@ -136,6 +138,7 @@ class ScopusTopController:
             author_profile = self.scopus_controller.get_author_profile(author_id)
             if caching:
                 self.cache_controller.insert_author_profile(author_profile)
+                self.cache_controller.save()
         return author_profile
 
     def get_publication(self, scopus_id, caching=True):
@@ -158,6 +161,7 @@ class ScopusTopController:
             # And then writing it into the cache for the next time
             if caching:
                 self.cache_controller.insert_publication(publication)
+                self.cache_controller.save()
         return publication
 
     def get_multiple_publications(self, scopus_id_list):

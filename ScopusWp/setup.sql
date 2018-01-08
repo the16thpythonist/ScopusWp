@@ -1,7 +1,7 @@
 DROP TABLE reference;
 DROP TABLE publications;
 DROP TABLE publication_cache;
-DROP TABLE authors_cache;
+DROP TABLE author_cache;
 
 
 CREATE TABLE reference
@@ -22,7 +22,7 @@ CREATE TABLE publications(
   journal VARCHAR(64),
   volume VARCHAR(32),
   date VARCHAR(32),
-  authors TEXT,
+  authors LONGTEXT,
   keywords TEXT,
   citations TEXT
 );
@@ -43,20 +43,20 @@ CREATE TABLE publication_cache
     keywords TEXT,
     date VARCHAR(32),
     citations TEXT,
-    authors TEXT
+    authors LONGTEXT
 );
 CREATE UNIQUE INDEX publication_cache_scopus_id_uindex ON publication_cache (scopus_id);
 CREATE UNIQUE INDEX publication_cache_eid_uindex ON publication_cache (eid);
 CREATE UNIQUE INDEX publication_cache_doi_uindex ON publication_cache (doi);
 
-CREATE TABLE authors_cache
+CREATE TABLE author_cache
 (
-    author_id INT PRIMARY KEY NOT NULL,
+    author_id BIGINT PRIMARY KEY NOT NULL,
     first_name TEXT,
     last_name TEXT,
-    h_index TEXT,
+    h_index INT,
     citation_count INT,
     document_count INT,
     publications TEXT
 );
-CREATE UNIQUE INDEX authors_cache_author_id_uindex ON authors_cache (author_id);
+CREATE UNIQUE INDEX author_cache_author_id_uindex ON author_cache (author_id);

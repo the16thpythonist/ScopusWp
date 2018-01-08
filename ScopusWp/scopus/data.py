@@ -109,7 +109,7 @@ class ScopusPublication(ScopusIdentifierInterface, DictionaryConversionInterface
         self.authors = author_list
         self.citations = citation_list
         self.keywords = list(map(unidecode, keyword_list))
-        self.journal = journal
+        self.journal = unidecode(journal).replace('"', "'")
         self.volume = volume
 
     @property
@@ -312,7 +312,7 @@ class ScopusAuthor(ScopusIdentifierInterface, DictionaryConversionInterface):
             author = ScopusAuthor(
                 dictionary['first_name'],
                 dictionary['last_name'],
-                int(dictionary['id']),
+                dictionary['id'],
                 dictionary['affiliations']
             )
             return author
@@ -340,6 +340,8 @@ class ScopusAuthorProfile(ScopusIdentifierInterface):
         self.citation_count = citation_count
         self.document_count = document_count
         self.publications = publication_list
+        if '' in self.publications:
+            self.publications.remove('')
 
     def get_id(self):
         """

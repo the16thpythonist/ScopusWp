@@ -263,13 +263,14 @@ class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
             'publications) '
             'VALUES ('
             '{author_id},'
-            '{first_name},'
-            '{last_name},'
+            '"{first_name}",'
+            '"{last_name}",'
             '{h_index},'
             '{citation_count},'
             '{document_count},'
-            '{publications})'
+            '"{publications}")'
         ).format(
+            database=self.database_name,
             author_id=author.id,
             first_name=author.first_name,
             last_name=author.last_name,
@@ -283,14 +284,14 @@ class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
 
     def select(self, author_id):
         sql = (
-            'SELECT ('
+            'SELECT '
             'author_id, '
             'first_name, '
             'last_name, '
             'h_index, '
             'citation_count, '
             'document_count, '
-            'publications'
+            'publications '
             'FROM {database} WHERE author_id={author_id}'
         ).format(
             database=self.database_name,
@@ -314,7 +315,8 @@ class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
         document_count = row[5]
 
         publications_json_string = row[6]
-        publication_list = json.loads(publications_json_string)
+        publication_list = json.loads(publications_json_string.replace("'", '"'))
+        publication_list = list(map(lambda x: int(x), publication_list))
 
         author_profile = ScopusAuthorProfile(
             author_id,
@@ -331,7 +333,7 @@ class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
     def select_all(self):
 
         sql = (
-            'SELECT ('
+            'SELECT '
             'author_id, '
             'first_name, '
             'last_name, '
@@ -355,9 +357,10 @@ class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
     def contains(self, author):
 
         sql = (
-            'SELECT * FROM {database}'
+            'SELECT * FROM {database} WHERE author_id={author_id}'
         ).format(
-            database=self.database_name
+            database=self.database_name,
+            author_id=int(author)
         )
 
         row_list = self.database_access.select(sql)
