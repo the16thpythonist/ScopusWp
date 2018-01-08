@@ -117,27 +117,47 @@ class ScopusTopController:
 
         return affiliation_list
 
-    def get_author_profile(self, author_id):
+    def get_author_profile(self, author_id, caching=True):
+        """
+        Returns the author profile for the given author id.
+        Uses caching if flag is set. so tries to get from cache first and if not in cache gets from the scopus website
+        and then writes back into the cache.
+
+        :param author_id: The int author id for the author
+        :param caching: boolean flag if use caching or not
+        :return: ScopusAuthorProfile
+        """
         # Checking if the author profile is already in the cache
         is_cached = self.cache_controller.contains_author_profile(author_id)
-        if is_cached:
+        if is_cached and caching:
             author_profile = self.cache_controller.select_author_profile(author_id)
         else:
             # Actually requesting from scopus website and then writing back into the cache
             author_profile = self.scopus_controller.get_author_profile(author_id)
-            self.cache_controller.insert_author_profile(author_profile)
+            if caching:
+                self.cache_controller.insert_author_profile(author_profile)
         return author_profile
 
-    def get_publication(self, scopus_id):
+    def get_publication(self, scopus_id, caching=True):
+        """
+        Returns the publication object for the given scopus id.
+        Uses caching if flag is set. So tries to get the publication from the cache first, if not in the cache, gets
+        the publication from the scopus website and then writes back into the cache.
+
+        :param scopus_id: The in scopus id identifying the publication
+        :param caching: boolean flag if caching enbled or not
+        :return: ScopusPublication
+        """
         # Checking if the publication is in the cache and returning the cached value if possible
         is_cached = self.cache_controller.contains_publication(scopus_id)
-        if is_cached:
+        if is_cached and caching:
             publication = self.cache_controller.select_publication(scopus_id)
         else:
             # If the publication is not cached, getting it from the scopus website
             publication = self.scopus_controller.get_publication(scopus_id)
             # And then writing it into the cache for the next time
-            self.cache_controller.insert_publication(publication)
+            if caching:
+                self.cache_controller.insert_publication(publication)
         return publication
 
     def get_multiple_publications(self, scopus_id_list):
