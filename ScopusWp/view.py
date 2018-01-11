@@ -249,3 +249,36 @@ class ScopusPublicationTableView:
         affiliations_string = textwrap.fill(affiliations_string, self.max_length)
 
         return affiliations_string
+
+
+class AuthorAffiliationTableView:
+
+    def __init__(self, author_affiliation_dict, affiliation_dict, max_length=40):
+        self.author_affiliation_dict = author_affiliation_dict
+        self.affiliation_dict = affiliation_dict
+
+        self.max_length = max_length
+
+    def get_string(self):
+        table_list = [['AUTHOR', 'AUTHOR ID', 'AFFILIATION ID', 'INSTITUTE NAME']]
+        table_list += self.get_row_list()
+
+        table_string = tabulate.tabulate(table_list, tablefmt='fancy_grid')
+        return table_string
+
+    def get_row_list(self):
+        row_list = []
+        for author_name_tuple in self.author_affiliation_dict.keys():
+            row_list += self.get_rows(author_name_tuple)
+        return row_list
+
+    def get_rows(self, author_name_tuple):
+        row_list = []
+        author_name = ' '.join(author_name_tuple)
+        row_list.append([author_name, '', '', ''])
+        for author_id, affiliation_id_list in self.author_affiliation_dict[author_name_tuple].items():
+            row_list.append(['', author_id, '', ''])
+            for affiliation_id in affiliation_id_list:
+                affiliation = self.affiliation_dict[affiliation_id]
+                row_list.append(['', '', affiliation_id, affiliation.institute])
+        return row_list

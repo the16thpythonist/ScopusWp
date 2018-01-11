@@ -208,5 +208,36 @@ def test_affiliation_script():
     affiliation_dict = controller.scopus_controller.explore_author_affiliations(author_dict)
     pprint(affiliation_dict)
 
+    # Creating a list with all the affiliations
+    affiliation_list = []
+    for name_tuple, author_dict in affiliation_dict.items():
+        for author_id, affiliation_id_list in author_dict.items():
+            difference = list(set(affiliation_id_list) - set(affiliation_list))
+            affiliation_list += difference
+    print(affiliation_list)
+
+    affiliation_name_dict = {}
+    for affiliation_id in affiliation_list:
+        if affiliation_id != '':
+            affiliation = controller.scopus_controller.scopus_controller.affiliation_controller.get_affiliation(affiliation_id)
+            affiliation_name_dict[affiliation_id] = affiliation
+
+    print(affiliation_name_dict)
+    from ScopusWp.view import AuthorAffiliationTableView
+    view = AuthorAffiliationTableView(affiliation_dict, affiliation_name_dict)
+    print(view.get_string())
 
 test_affiliation_script()
+
+"""
+import pathlib
+p = pathlib.Path('/home/jonas/PycharmProjects/ScopusWp/ScopusWp/temp')
+path_list = []
+for path in p.glob('*.pkl'):  # type:pathlib.PosixPath
+    path_list.append(str(path))
+p = p.joinpath('_info_au_aff.json')
+print(str(p))
+with p.open('w+') as file:
+    import json
+    json.dump({'counter':38, 'paths':path_list}, file)
+"""
