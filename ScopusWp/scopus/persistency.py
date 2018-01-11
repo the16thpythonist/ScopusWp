@@ -268,7 +268,7 @@ class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
         publication_list_json = json.dumps(author.publications).replace('"', "'")
 
         sql = (
-            'INSERT IGNORE INTO '
+            'INSERT INTO '
             '{database} ('
             'author_id,'
             'first_name, '
@@ -284,7 +284,15 @@ class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
             '{h_index},'
             '{citation_count},'
             '{document_count},'
-            '"{publications}")'
+            '"{publications}") '
+            'ON DUPLICATE KEY UPDATE '
+            'author_id = {author_id},'
+            'first_name = "{first_name}",'
+            'last_name = "{last_name}",'
+            'h_index = {h_index},'
+            'citation_count = {citation_count},'
+            'document_count = {document_count},'
+            'publications = "{publications}";'
         ).format(
             database=self.database_name,
             author_id=author.id,
@@ -429,7 +437,7 @@ class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
         citations_json_string = json.dumps(publication.citations).replace('"', "'")
 
         sql = (
-            'INSERT IGNORE INTO '
+            'INSERT INTO '
             '{database} ('
             'scopus_id, '
             'eid, '
@@ -455,8 +463,20 @@ class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
             '"{date}", '
             '"{authors}", '
             '"{keywords}", '
-            '"{citations}"'
-            ');'
+            '"{citations}") '
+            'ON DUPLICATE KEY UPDATE '
+            'scopus_id = {scopus_id}, '
+            'eid = "{eid}", '
+            'doi = "{doi}", '
+            'creator = "{creator}", '
+            'title = "{title}", '
+            'description = "{description}", '
+            'journal = "{journal}", '
+            'volume = "{volume}", '
+            'date = "{date}", '
+            'authors = "{authors}", '
+            'keywords = "{keywords}", '
+            'citations = "{citations}";'
         ).format(
             database=self.database_name,
             scopus_id=publication.id,
