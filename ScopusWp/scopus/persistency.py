@@ -29,6 +29,9 @@ class PublicationPersistencyInterface:
     def select_all(self):
         raise NotImplementedError()
 
+    def select_all_ids(self):
+        raise NotImplementedError()
+
     def insert(self, publication):
         raise NotImplementedError()
 
@@ -36,6 +39,9 @@ class PublicationPersistencyInterface:
         raise NotImplementedError()
 
     def save(self):
+        raise NotImplementedError()
+
+    def wipe(self):
         raise NotImplementedError()
 
 
@@ -47,6 +53,9 @@ class AuthorProfilePersistencyInterface:
     def select_all(self):
         raise NotImplementedError()
 
+    def select_all_ids(self):
+        raise NotImplementedError()
+
     def insert(self, author_profile):
         raise NotImplementedError()
 
@@ -54,6 +63,9 @@ class AuthorProfilePersistencyInterface:
         raise NotImplementedError()
 
     def save(self):
+        raise NotImplementedError()
+
+    def wipe(self):
         raise NotImplementedError()
 
 
@@ -138,10 +150,10 @@ class ScopusCacheController:
         return self.publication_cache_model.select_all()
 
     def select_all_publication_ids(self):
-        return list(self.publication_cache_model.content.keys())
+        return self.publication_cache_model.select_all_ids()
 
     def select_all_author_ids(self):
-        return list(self.author_cache_model.content.keys())
+        return self.author_cache_model.select_all_ids()
 
     def save(self):
         self.publication_cache_model.save()
@@ -358,6 +370,19 @@ class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
 
         return author_profile_list
 
+    def select_all_ids(self):
+        sql = (
+            'SELECT '
+            'author_id '
+            'FROM {database};'
+        ).format(
+            database=self.database_name
+        )
+
+        row_list = self.database_access.select(sql)
+        id_list = list(map(lambda x: x[0], row_list))
+        return id_list
+
     def contains(self, author):
 
         sql = (
@@ -539,13 +564,16 @@ class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
 
     def select_all_ids(self):
         sql = (
-            'SELECT scopus_id FROM {database}'
+            'SELECT '
+            'scopus_id '
+            'FROM {database};'
         ).format(
             database=self.database_name
         )
 
-        rows = self.database_access.select(sql)
-        return rows
+        row_list = self.database_access.select(sql)
+        id_list = list(map(lambda x: x[0], row_list))
+        return id_list
 
     def save(self):
         self.database_access.save()

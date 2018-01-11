@@ -208,6 +208,31 @@ def test_affiliation_script():
     affiliation_dict = controller.scopus_controller.explore_author_affiliations(author_dict)
     pprint(affiliation_dict)
 
+    import configparser
+    import json
+    with open('/home/jonas/PycharmProjects/ScopusWp/ScopusWp/scopus/authors2.ini', mode='w+') as file:
+        parser = configparser.ConfigParser()
+        parser.read_file(file)
+
+        for name_tuple, author_dict in affiliation_dict.items():
+            short_name = name_tuple[1][:2] + name_tuple[0][:2]
+            short_name = short_name.upper()
+            parser[short_name] = {}
+            id_list = []
+            affil_list = []
+            for author_id, aff_list in author_dict.items():
+                id_list.append(author_id)
+                diff = list(set(aff_list) - set(affil_list))
+                affil_list += diff
+            affil_list = list(map(lambda x: int(x), affil_list))
+            parser[short_name]['ids'] = json.dumps(id_list)
+            parser[short_name]['first_name'] = name_tuple[1]
+            parser[short_name]['last_name'] = name_tuple[0]
+            parser[short_name]['keywords'] = '["Team"]'
+            parser[short_name]['scopus_whitelist'] = json.dumps(affil_list)
+            parser[short_name]['scopus_blacklist'] = '[]'
+        parser.write(file)
+    """
     # Creating a list with all the affiliations
     affiliation_list = []
     for name_tuple, author_dict in affiliation_dict.items():
@@ -226,6 +251,7 @@ def test_affiliation_script():
     from ScopusWp.view import AuthorAffiliationTableView
     view = AuthorAffiliationTableView(affiliation_dict, affiliation_name_dict)
     print(view.get_string())
+    """
 
 test_affiliation_script()
 

@@ -108,9 +108,16 @@ class ScopusPublication(ScopusIdentifierInterface, DictionaryConversionInterface
         self.creator = creator
         self.authors = author_list
         self.citations = citation_list
-        self.keywords = list(map(unidecode, keyword_list))
+        self.keywords = list(map(self._rip, keyword_list))
         self.journal = unidecode(journal).replace('"', "'")
         self.volume = volume
+
+    @staticmethod
+    def _rip(keyword_string):
+        keyword_string = unidecode(keyword_string)
+        keyword_string = keyword_string.replace(',', '')
+        keyword_string = keyword_string.replace("'", '').replace('"', '')
+        return keyword_string
 
     @property
     def affiliations(self):
@@ -337,8 +344,14 @@ class ScopusAuthorProfile(ScopusIdentifierInterface):
         self.first_name = unidecode(first_name).replace("'", '')
         self.last_name = unidecode(last_name).replace("'", '')
         self.h_index = h_index
+        if h_index is None:
+            self.h_index = 0
         self.citation_count = citation_count
+        if citation_count is None:
+            self.citation_count = 0
         self.document_count = document_count
+        if document_count is None:
+            self.document_count = 0
         self.publications = publication_list
         if '' in self.publications:
             self.publications.remove('')

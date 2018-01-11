@@ -31,4 +31,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    controller = TopController()
+    controller.reload_scopus_cache_observed()

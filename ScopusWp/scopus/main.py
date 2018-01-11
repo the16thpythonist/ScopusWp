@@ -349,8 +349,10 @@ class ScopusTopController:
             for scopus_id in observed_publication_id_list:
                 publication = self.cache_controller.select_publication(scopus_id)
 
-                difference = list(set(publication.citations) - set(citation_scopus_id_list))
-                citation_scopus_id_list += difference
+                # Protecting against the unlikely case of corrupted data with double checking for None
+                if publication is not None:
+                    difference = list(set(publication.citations) - set(citation_scopus_id_list))
+                    citation_scopus_id_list += difference
 
             # Loading all those publications into the cache as well
             self.load_publications_cache(citation_scopus_id_list)
