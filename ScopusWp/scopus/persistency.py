@@ -245,6 +245,10 @@ class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
         self.config = Config.get_instance()
         self.database_name = self.config['MYSQL']['author_cache_table']
 
+    def wipe(self):
+        sql = 'TRUNCATE {};'.format(self.database_name)
+        self.database_access.execute(sql)
+
     def insert(self, author):
         # Converting all the data into json so it fits into the data base columns
 
@@ -379,6 +383,10 @@ class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
 
         self.config = Config.get_instance()
         self.database_name = self.config['MYSQL']['publication_cache_table']
+
+    def wipe(self):
+        sql = 'TRUNCATE {};'.format(self.database_name)
+        self.database_access.execute(sql)
 
     def insert(self, publication):
         # Converting all the data so it fits into a database data column

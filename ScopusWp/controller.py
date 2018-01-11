@@ -97,6 +97,9 @@ class TopController:
         # Deleting the reference database
         self.reference_controller.wipe()
 
+        self.reference_controller.save()
+        self.scopus_controller.backup_controller.save()
+
     def reload_scopus_cache_observed(self):
         self.scopus_controller.reload_cache_observed()
 
