@@ -214,9 +214,6 @@ class ScopusTopController:
         return scopus_id_list
 
     def reload_cache_observed(self):
-        # Clearing the cache
-        self.cache_controller.wipe()
-        self.cache_controller.save()
 
         # Loading the cache anew
         self.load_cache_observed()
