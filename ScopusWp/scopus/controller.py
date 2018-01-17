@@ -145,9 +145,8 @@ class ScopusTopController:
         else:
             # Actually requesting from scopus website and then writing back into the cache
             author_profile = self.scopus_controller.get_author_profile(author_id)
-            if caching:
-                self.cache_controller.insert_author_profile(author_profile)
-                self.cache_controller.save()
+            self.cache_controller.insert_author_profile(author_profile)
+            self.cache_controller.save()
         return author_profile
 
     def get_publication(self, scopus_id, caching=True):
@@ -167,10 +166,10 @@ class ScopusTopController:
         else:
             # If the publication is not cached, getting it from the scopus website
             publication = self.scopus_controller.get_publication(scopus_id)
+
             # And then writing it into the cache for the next time
-            if caching:
-                self.cache_controller.insert_publication(publication)
-                self.cache_controller.save()
+            self.cache_controller.insert_publication(publication)
+            self.cache_controller.save()
         return publication
 
     def get_multiple_publications(self, scopus_id_list, caching=True):
@@ -210,6 +209,9 @@ class ScopusTopController:
                 _publication = self.get_publication(_scopus_id, caching=caching)
                 _publication_list.append(_publication)
             publication_list += _publication_list
+
+
+
         return publication_list
 
     def get_publication_ids_observed(self, caching=True):
