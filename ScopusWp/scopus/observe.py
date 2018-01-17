@@ -56,6 +56,7 @@ class ScopusObservationController:
         keywords = []
         # Going through all the authors of the publication and adding all the keywords of each observed author found
         for author in publication.authors:
+
             if author in self.author_observation_model:
                 author_keywords = self.get_author_keywords(author)
                 difference = list(set(author_keywords) - set(keywords))

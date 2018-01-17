@@ -33,4 +33,4 @@ def main():
 if __name__ == '__main__':
     #main()
     controller = TopController()
-    controller.reload_scopus_cache_observed()
+    controller.repopulate_website(True)

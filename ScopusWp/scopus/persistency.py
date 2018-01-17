@@ -566,6 +566,9 @@ class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
             return publication
 
     def contains(self, publication):
+        if not(isinstance(publication, ScopusPublication) or isinstance(publication, int)):
+            return False
+
         sql = (
             'SELECT * FROM {database} WHERE scopus_id={scopus_id}'
         ).format(
@@ -606,13 +609,12 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
     def __init__(self):
 
         self.database_access = MySQLDatabaseAccess()
+        self.database_name = 'publications'
 
     def execute(self, sql):
         return self.database_access.select(sql)
 
     def insert(self, publication):
-        assert isinstance(publication, ScopusPublication)
-
         if not isinstance(publication.id, int):
             return None
         # Converting all the data so it fits into a database data column
@@ -630,8 +632,8 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
         citations_json_string = json.dumps(publication.citations).replace('"', "'")
 
         sql = (
-            'INSERT IGNORE INTO '
-            'publications ('
+            'INSERT INTO '
+            '{database} ('
             'scopus_id, '
             'eid, '
             'doi, '
@@ -656,9 +658,22 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
             '"{date}", '
             '"{authors}", '
             '"{keywords}", '
-            '"{citations}"'
-            ');'
+            '"{citations}") '
+            'ON DUPLICATE KEY UPDATE '
+            'scopus_id = {scopus_id}, '
+            'eid = "{eid}", '
+            'doi = "{doi}", '
+            'creator = "{creator}", '
+            'title = "{title}", '
+            'description = "{description}", '
+            'journal = "{journal}", '
+            'volume = "{volume}", '
+            'date = "{date}", '
+            'authors = "{authors}", '
+            'keywords = "{keywords}", '
+            'citations = "{citations}";'
         ).format(
+            database=self.database_name,
             scopus_id=publication.id,
             eid=publication.eid,
             doi=publication.doi,
@@ -692,8 +707,9 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
             'authors, '
             'keywords, '
             'citations '
-            'FROM publications WHERE scopus_id={id}'
+            'FROM {database} WHERE scopus_id={id}'
         ).format(
+            database=self.database_name,
             id=scopus_id
         )
 
@@ -741,8 +757,6 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
             )
 
             return publication
-
-            # TODO: error when no pub found
 
     def save(self):
         self.database_access.save()

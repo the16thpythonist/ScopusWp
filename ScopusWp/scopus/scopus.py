@@ -8,6 +8,8 @@ import requests
 import json
 import os
 
+import pprint
+
 
 class ScopusBaseController:
     """
@@ -480,6 +482,8 @@ class ScopusPublicationController(ScopusBaseController):
         # Sending the url request and fetching the response
         response = requests.get(url, headers=self.headers)
 
+        pprint.pprint(json.loads(response.text))
+
         return response
 
     def request_citations_search(self, eid, start=0, count=200):
@@ -886,4 +890,3 @@ class ScopusController:
         :return: a list of ScopusAffiliation objects
         """
         return self.get_multiple_affiliations(publication.affiliations)
-

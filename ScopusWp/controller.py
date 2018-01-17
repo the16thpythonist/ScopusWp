@@ -18,6 +18,9 @@ class TopController:
         # Getting the list of all the scopus ids of those users
         pass
 
+    def update_citations_website(self):
+        pass
+
     def update_publications_website(self):
         # THE SCOPUS PART
         # Getting the new and relevant publications
@@ -122,7 +125,7 @@ class TopController:
         publication = self.reference_controller.publication_from_scopus(scopus_publication)
 
         # Getting the keywords for each publication
-        keywords = self.scopus_controller.publication_observation_keywords(publication)
+        keywords = self.scopus_controller.publication_observation_keywords(scopus_publication)
 
         # Posting this publication to the wordpress site
         wordpress_id = self.wordpress_controller.post_publication(publication, keywords)

@@ -201,16 +201,15 @@ class ScopusTopController:
             author_profile = self.get_author_profile(author_id, caching=caching)
             author_profile_list.append(author_profile)
         # Getting the publications for all the author profiles
-        publication_list = []
+        scopus_id_list = []
         for author_profile in author_profile_list:
             _scopus_id_list = author_profile.publications
-            _publication_list = []
-            for _scopus_id in _scopus_id_list:
-                _publication = self.get_publication(_scopus_id, caching=caching)
-                _publication_list.append(_publication)
-            publication_list += _publication_list
+            _difference = list(set(_scopus_id_list) - set(scopus_id_list))
+            scopus_id_list.append(_difference)
+        if '' in scopus_id_list:
+            scopus_id_list.remove('')
 
-
+        publication_list = self.get_multiple_publications(scopus_id_list)
 
         return publication_list
 
