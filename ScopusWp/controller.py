@@ -55,24 +55,29 @@ class TopController:
 
         return filtered_publication_list
 
-    def repopulate_website(self):
+    def repopulate_website(self, caching):
         """
         Wipes the website clean and then posts all the publications & citation comments a new
 
+        :param caching: The boolean flag of whether to call the get requests against the cache first or use a new
+            scopus request every time.
         :return: void
         """
         # Deleting all current posts and the reference database before inserting the new entries
         self.wipe_website()
 
         # All the relevant (already filtered) publications of the observed authors
-        observed_publications_list = self.scopus_controller.get_publications_observed()
+        observed_publications_list = self.scopus_controller.get_publications_observed(caching=caching)
 
         # Uploading all the publications to the website
         for publication in observed_publications_list:
             self.post_scopus_publication(publication)
 
             # posting all the citations as comments
-            citation_publication_list = self.scopus_controller.get_multiple_publications(publication.citations)
+            citation_publication_list = self.scopus_controller.get_multiple_publications(
+                publication.citations,
+                caching=caching
+            )
             for citation_publication in citation_publication_list:
                 self.post_scopus_citation(publication, citation_publication)
 
