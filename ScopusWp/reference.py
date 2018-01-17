@@ -124,6 +124,15 @@ class ReferenceController:
         publication = Publication.from_scopus_publication(scopus_publication, publication_id)
         return publication
 
+    def select_reference_by_scopus(self, scopus_id):
+        """
+        Select the reference by the scopus id.
+
+        :param scopus_id: The int scopus id
+        :return: (internal id, wordpress id, scopus id)
+        """
+        return self.reference_model.search_by_scopus(scopus_id)
+
     def wipe(self):
         self.reference_model.wipe()
 

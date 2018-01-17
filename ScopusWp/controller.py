@@ -68,6 +68,10 @@ class TopController:
 
         # TODO: Implement the citations for those posts
 
+    def post_scopus_citation(self, base_publication, citation_publication):
+        # Getting the wordpress id of the according post from the reference database
+        pass
+
     def post_scopus_publication(self, scopus_publication):
         """
         Posts a scopus publication object onto the wordpress site.
