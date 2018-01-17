@@ -191,12 +191,19 @@ class ScopusTopController:
         # Getting the author ids of all the observed authors for the scopus database
         author_id_list = self.observation_controller.all_observed_ids()
         # Getting the author profiles for all the authors
-        author_profile_list = self.scopus_controller.get_multiple_author_profiles(author_id_list)
+        author_profile_list = []
+        for author_id in author_id_list:
+            author_profile = self.get_author_profile(author_id)
+            author_profile_list.append(author_profile)
         # Getting the publications for all the author profiles
         publication_list = []
         for author_profile in author_profile_list:
-            _publications = self.scopus_controller.get_author_publications(author_profile)
-            publication_list += _publications
+            _scopus_id_list = author_profile.publications
+            _publication_list = []
+            for _scopus_id in _scopus_id_list:
+                _publication = self.get_publication(_scopus_id)
+                _publication_list.append(_publication)
+            publication_list += _publication_list
         return publication_list
 
     def get_publication_ids_observed(self):
