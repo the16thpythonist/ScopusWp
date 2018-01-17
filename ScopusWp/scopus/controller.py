@@ -187,13 +187,19 @@ class ScopusTopController:
             publication_list.append(publication)
         return publication_list
 
-    def get_publications_observed(self):
+    def get_publications_observed(self, caching=True):
+        """
+        Gets ALL the publications from the observed authors.
+
+        :param caching: The boolean flag of whether to use caching or not
+        :return: [ScopusPublication]
+        """
         # Getting the author ids of all the observed authors for the scopus database
         author_id_list = self.observation_controller.all_observed_ids()
         # Getting the author profiles for all the authors
         author_profile_list = []
         for author_id in author_id_list:
-            author_profile = self.get_author_profile(author_id)
+            author_profile = self.get_author_profile(author_id, caching=caching)
             author_profile_list.append(author_profile)
         # Getting the publications for all the author profiles
         publication_list = []
@@ -201,7 +207,7 @@ class ScopusTopController:
             _scopus_id_list = author_profile.publications
             _publication_list = []
             for _scopus_id in _scopus_id_list:
-                _publication = self.get_publication(_scopus_id)
+                _publication = self.get_publication(_scopus_id, caching=caching)
                 _publication_list.append(_publication)
             publication_list += _publication_list
         return publication_list
