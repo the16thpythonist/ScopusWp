@@ -234,7 +234,7 @@ class ScopusTopController:
         # Loading the publications of the observed authors into the cache
         self._load_cache_observed_publications(load_citations=load_citations)
 
-    def load_publications_cache(self, scopus_id_list, auto_save_interval=20, reload=False):
+    def load_publications_cache(self, scopus_id_list, auto_save_interval=10, reload=False):
         """
         Loads the publication info about the publications described by the scopus ids in the list from the scopus
         website and saves them in the cache.
@@ -275,7 +275,7 @@ class ScopusTopController:
 
         self.cache_controller.save()
 
-    def load_authors_cache(self, author_id_list, auto_save_interval=20, reload=False):
+    def load_authors_cache(self, author_id_list, auto_save_interval=10, reload=False):
         """
         Loads the author profiles for the authors given by the author id list into the cache, by requesting them
         from the scopus website.

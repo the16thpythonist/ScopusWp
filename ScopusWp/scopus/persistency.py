@@ -422,6 +422,8 @@ class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
         self.database_access.execute(sql)
 
     def insert(self, publication):
+        if not isinstance(publication.id, int):
+            return None
         # Converting all the data so it fits into a database data column
 
         # Turning the creator ScopusAuthor object into a json string
@@ -611,6 +613,8 @@ class ScopusBackupPublicationModel(PublicationPersistencyInterface):
     def insert(self, publication):
         assert isinstance(publication, ScopusPublication)
 
+        if not isinstance(publication.id, int):
+            return None
         # Converting all the data so it fits into a database data column
 
         # Turning the creator ScopusAuthor object into a json string

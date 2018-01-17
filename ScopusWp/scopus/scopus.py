@@ -475,6 +475,7 @@ class ScopusPublicationController(ScopusBaseController):
         # Preparing the url to which to send the GET request
         url_base = os.path.join(self.url_base, 'abstract/scopus_id', str(scopus_id))
         url = '{}?{}'.format(url_base, urlparse.urlencode(query))
+        print(url)
 
         # Sending the url request and fetching the response
         response = requests.get(url, headers=self.headers)

@@ -253,17 +253,13 @@ def test_affiliation_script():
     print(view.get_string())
     """
 
-test_affiliation_script()
 
-"""
-import pathlib
-p = pathlib.Path('/home/jonas/PycharmProjects/ScopusWp/ScopusWp/temp')
-path_list = []
-for path in p.glob('*.pkl'):  # type:pathlib.PosixPath
-    path_list.append(str(path))
-p = p.joinpath('_info_au_aff.json')
-print(str(p))
-with p.open('w+') as file:
-    import json
-    json.dump({'counter':38, 'paths':path_list}, file)
-"""
+def test_kit_open():
+    import requests
+
+    url = 'https://publikationen.bibliothek.kit.edu/publikationslisten/get.php?referencing=all&external_publications=all&lang=de&format=html&style=kit-3lines-title_b-authors-other&authors=Kopmann%2C%20Andreas'
+    response = requests.get(url)
+    print(response.text)
+
+
+test_kit_open()
