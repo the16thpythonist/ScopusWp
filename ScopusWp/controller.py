@@ -68,9 +68,28 @@ class TopController:
 
         # TODO: Implement the citations for those posts
 
-    def post_scopus_citation(self, base_publication, citation_publication):
+    def post_scopus_citation(self, post_publication, citation_publication):
+        """
+        Posts the given citation publication as a citation to the post publication, upon which a wordpress post is
+        based on the website.
+
+        Also saves the citation publication in the wordpress backup database.
+        :param post_publication: The ScopusPublication upon which a wordpress post is based on
+        :param citation_publication: The ScopusPublication that cites the post publication and is supposed to appear as
+            a comment on the wordpress post of the post publication
+        :return: void
+        """
         # Getting the wordpress id of the according post from the reference database
-        pass
+        scopus_id_post_publication = int(post_publication)
+        reference_tuple = self.reference_controller.select_reference_by_scopus(scopus_id_post_publication)
+
+        # Posting the citation to the actual
+        wordpress_id = reference_tuple[1]
+        self.wordpress_controller.post_citations(wordpress_id, [citation_publication])
+
+        # Saving the citation publication in the backup database for possible future use
+        self.scopus_controller.insert_publication_backup(citation_publication)
+        self.scopus_controller.backup_controller.save()
 
     def post_scopus_publication(self, scopus_publication):
         """
