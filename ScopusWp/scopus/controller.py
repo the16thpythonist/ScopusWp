@@ -173,10 +173,17 @@ class ScopusTopController:
                 self.cache_controller.save()
         return publication
 
-    def get_multiple_publications(self, scopus_id_list):
+    def get_multiple_publications(self, scopus_id_list, caching=True):
+        """
+        Gets multiple publications based on the multiple scopus ids given in the list.
+
+        :param scopus_id_list: The list of scopus ids for which to get the publications
+        :param caching: The boolean flag of whether to use caching or not
+        :return: [ScopusPublication]
+        """
         publication_list = []
         for scopus_id in scopus_id_list:
-            publication = self.get_publication(scopus_id)
+            publication = self.get_publication(scopus_id, caching=caching)
             publication_list.append(publication)
         return publication_list
 
