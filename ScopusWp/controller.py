@@ -55,6 +55,19 @@ class TopController:
 
         return filtered_publication_list
 
+    def repopulate_website(self):
+        # Deleting all current posts and the reference database before inserting the new entries
+        self.wipe_website()
+
+        # All the relevant (already filtered) publications of the observed authors
+        observed_publications_list = self.scopus_controller.get_publications_observed()
+
+        # Uploading all the publications to the website
+        for publication in observed_publications_list:
+            self.post_scopus_publication(publication)
+
+        # TODO: Implement the citations for those posts
+
     def post_scopus_publication(self, scopus_publication):
         """
         Posts a scopus publication object onto the wordpress site.
