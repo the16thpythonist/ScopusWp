@@ -1,4 +1,4 @@
-from ScopusWp.scopus.main import ScopusTopController
+from ScopusWp.scopus.controller import ScopusTopController
 
 from ScopusWp.reference import ReferenceController
 
@@ -69,17 +69,6 @@ class TopController:
         self.reference_controller.insert_reference(publication.id, wordpress_id, scopus_publication.id)
         # Saving the publication to the backup system
         self.scopus_controller.insert_publication_backup(scopus_publication)
-
-        # Getting all the citations from the scopus site
-        citation_scopus_publication_list = self.scopus_controller.get_multiple_publications(scopus_publication.citations)
-        citation_publication_list = []
-        for citation_scopus_publication in citation_scopus_publication_list:
-            # Saving the citation publication to the backup system
-            self.scopus_controller.insert_publication_backup(citation_scopus_publication)
-            publication = self.reference_controller.publication_from_scopus(citation_scopus_publication)
-            citation_publication_list.append(publication)
-        # Posting the comments
-        self.wordpress_controller.post_citations(wordpress_id, citation_publication_list)
 
         # Saving the backup database and the reference database
         self.scopus_controller.backup_controller.save()
