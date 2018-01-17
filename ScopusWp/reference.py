@@ -204,4 +204,22 @@ class ReferenceModel:
         pass
 
     def search_by_scopus(self, scopus_id):
-        pass
+        """
+        Searches a reference entry by the scopus id and returns a tuple with the internal id, worpdress id and the
+        scopus id
+
+        :param scopus_id: The int scopus id for the post
+        :return: (internal id, wordpress id, scopus id)
+        """
+        sql = (
+            'SELECT '
+            'id,'
+            'wordpress_id,'
+            'scopus_id '
+            'FROM reference WHERE scopus_id={scopus_id}'
+        ).format(
+            scopus_id=scopus_id
+        )
+
+        row_list = self.database_access.select(sql)
+        return row_list[0]
