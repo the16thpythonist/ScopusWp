@@ -119,6 +119,15 @@ class ScopusTopController:
 
         return affiliation_list
 
+    def get_author_observations(self):
+        """
+        This method will return all the ScopusAuthorObservation objects. Those objects contain the data specified in
+        the config file for which authors to be represented in the system and the website.
+
+        :return: [ScopusAuthorObservation]
+        """
+        return self.observation_controller.all_observations()
+
     def get_author_profile(self, author_id, caching=True):
         """
         Returns the author profile for the given author id.
