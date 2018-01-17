@@ -212,7 +212,16 @@ class ScopusTopController:
             publication_list += _publication_list
         return publication_list
 
-    def get_publication_ids_observed(self):
+    def get_publication_ids_observed(self, caching=True):
+        """
+        Gets the publication ids of all the publications of all the observed authors
+
+        Gets all the author ids of the observed authors, gets all the author profiles for those ids and then gets from
+        the profiles the lists of publications and adds those to the overall list, that have not already been added by
+        a co author. returns the over all list.
+        :param caching: The boolean flag of whether or not to use caching for the author profiles
+        :return: [int] the scopus ids
+        """
         # Getting the list of observed authors from the observation controller
         observed_author_id_list = self.observation_controller.all_observed_ids()
 
@@ -220,11 +229,7 @@ class ScopusTopController:
         for author_id in observed_author_id_list:
             # Attempting to get the author profiles for the publication id lists from the cache and if the cache
             # does not contain them, requesting them from scopus
-            is_cached = self.cache_controller.contains_author_profile(author_id)
-            if is_cached:
-                author_profile = self.cache_controller.select_author_profile(author_id)
-            else:
-                author_profile = self.scopus_controller.get_author_profile(author_id)
+            author_profile = self.get_author_profile(author_id)
             publication_difference_list = list(set(author_profile.publications) - set(publication_id_list))
             publication_id_list += publication_difference_list
 
