@@ -27,33 +27,36 @@ class TopController:
             self.post_scopus_publication(scopus_publication)
 
     def new_scopus_publications(self):
-        # loading the list of all the scopus publications, that are already on the website, by checking the reference
-        # database
+        """
+        Gets all the new publications from the observed authors, that have to be added to the website.
+
+        :return: [ScopusPublication]
+        """
+        # Getting a list of all the scopus ids for the publications already in the website
         reference_list = self.reference_controller.select_all_references()
-        # Getting all the scopus ids into one list
-        reference_scopus_id_list = []
-        for reference in reference_list:
-            scopus_id = int(reference[2])
-            if scopus_id != 0:
-                reference_scopus_id_list.append(scopus_id)
+        old_scopus_id_list = list(map(lambda x: x[2], reference_list))
 
-        # Getting a list with all the scopus ids of the publications currently saved in the cache
-        observed_id_list = self.scopus_controller.get_publication_ids_observed()
+        # Getting a list of ALL the scopus ids for the observed authors, but without caching as we want to know whether
+        # something has changed from before
+        new_scopus_id_list = self.scopus_controller.get_publication_ids_observed(caching=False)
 
-        # Getting the difference of the scopus ids in the cache and the scopus ids from the reference as exactly those
-        # scopus ids, which are the new publications to be updated to the website
-        new_id_list = list(set(observed_id_list) - set(reference_scopus_id_list))
-        # Getting those publications from the cache
-        new_publications_list = self.scopus_controller.select_multiple_publications_cache(new_id_list)
+        # Getting all the new publications
+        scopus_id_difference_list = list(set(new_scopus_id_list) - set(old_scopus_id_list))
+        publication_list = []
+        for scopus_id in scopus_id_difference_list:
+            # obviously without caching as we want the newest version of the publications, so they are fresh for as
+            # long as possible
+            publication = self.scopus_controller.get_publication(scopus_id, caching=False)
+            publication_list.append(publication)
 
-        # Filtering the new publications by the observed author criteria
+        # Filtering those publications by the whitelist blacklist criteria of the affiliations
         (
-            filtered_publication_list,
-            blacklist,
-            remaining
-         ) = self.scopus_controller.filter_by_observation(new_publications_list)
+            publication_whitelist,
+            publication_blacklist,
+            publication_remaining_list
+        ) = self.scopus_controller.filter_by_observation(publication_list)
 
-        return filtered_publication_list
+        return publication_whitelist
 
     def repopulate_website(self, caching):
         """
