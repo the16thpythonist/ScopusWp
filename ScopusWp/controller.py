@@ -56,6 +56,11 @@ class TopController:
         return filtered_publication_list
 
     def repopulate_website(self):
+        """
+        Wipes the website clean and then posts all the publications & citation comments a new
+
+        :return: void
+        """
         # Deleting all current posts and the reference database before inserting the new entries
         self.wipe_website()
 
@@ -66,7 +71,10 @@ class TopController:
         for publication in observed_publications_list:
             self.post_scopus_publication(publication)
 
-        # TODO: Implement the citations for those posts
+            # posting all the citations as comments
+            citation_publication_list = self.scopus_controller.get_multiple_publications(publication.citations)
+            for citation_publication in citation_publication_list:
+                self.post_scopus_citation(publication, citation_publication)
 
     def post_scopus_citation(self, post_publication, citation_publication):
         """
