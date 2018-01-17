@@ -56,6 +56,15 @@ class TopController:
         return filtered_publication_list
 
     def post_scopus_publication(self, scopus_publication):
+        """
+        Posts a scopus publication object onto the wordpress site.
+
+        Turns the scopus publication into a generalized publication object by the reference controller and then uploads
+        the post to the wordpress site and saves the wordpress id in the reference controller and the scopus publication
+        in the scopus backup database.
+        :param scopus_publication: The ScopusPublication object to be posted on the website
+        :return:
+        """
         # Creating a new generalized publication object from the scopus publication using the reference controller to
         # create a new internal id for the object
         publication = self.reference_controller.publication_from_scopus(scopus_publication)
@@ -73,6 +82,8 @@ class TopController:
         # Saving the backup database and the reference database
         self.scopus_controller.backup_controller.save()
         self.reference_controller.save()
+
+        return publication.id, wordpress_id, scopus_publication.id
 
     def wipe_website(self):
         # Getting all the wordpress ids from the reference database to delete all the posts from the website
