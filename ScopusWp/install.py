@@ -866,8 +866,8 @@ class SetupController:
         self.folder_setup_controller.run()
         self.config_setup_controller.run()
         self.ids_setup_controller.run()
-        self.observed_author_setup_controller()
-        self.sql_setup_controller()
+        self.observed_author_setup_controller.run()
+        self.sql_setup_controller.run()
 
 
 if __name__ == '__main__':
