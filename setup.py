@@ -1,6 +1,10 @@
 from setuptools import setup
 from setuptools import find_packages
 
+from setuptools.command.install import install
+from setuptools.command.egg_info import egg_info
+from setuptools.command.develop import develop
+
 import configparser
 import os
 
@@ -118,9 +122,28 @@ class IdJsonInstallationController:
         return exists and is_file
 
 
+class CustomInstallCommand(install):
+
+    def run(self):
+        print('Hallo kann man das sehen')
+        install.run(self)
+        from ScopusWp.config import PATH
+        print(PATH)
+
+
+class CustomDevelopCommand(develop):
+
+    def run(self):
+        print('Hallo kann man das sehen')
+        develop.run(self)
+        from ScopusWp.config import PATH
+        print(PATH)
+
+
+
 setup(
     name='scopus.wp',
-    version='0.0.0.dev30',
+    version='0.0.0.dev33',
     description='A tool for a wordpress server which will automatically post science publications from scopus database',
     url='https://github.com/the16thpythonist/ScopusWp',
     author='Jonas Teufel',
@@ -128,6 +151,10 @@ setup(
     license='MIT',
     packages=['ScopusWp', 'ScopusWp/scopus', 'ScopusWp/cache', 'ScopusWp/logs'],
     include_package_data=True,
+    cmdclass={
+        'install': CustomInstallCommand,
+        'develop': CustomDevelopCommand
+    },
     install_requires=[
         'requests>=2.0',
         'mysqlclient>=1.2',
