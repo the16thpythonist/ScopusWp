@@ -200,7 +200,8 @@ class ReferenceModel:
             'VALUES ('
             '{internal_id},'
             '{wordpress_id}, '
-            '{scopus_id})'
+            '{scopus_id});'
+            'COMMIT;'
         ).format(
             internal_id=internal_id,
             wordpress_id=wordpress_id,

@@ -3,7 +3,6 @@ DROP TABLE publications;
 DROP TABLE publication_cache;
 DROP TABLE author_cache;
 
-
 CREATE TABLE reference
 (
     id BIGINT PRIMARY KEY,
@@ -11,17 +10,19 @@ CREATE TABLE reference
     scopus_id BIGINT
 );
 CREATE UNIQUE INDEX reference_id_uindex ON reference (id);
+ALTER TABLE reference ENGINE=InnoDB;
 
-CREATE TABLE publications(
-  scopus_id BIGINT PRIMARY KEY,
-  eid VARCHAR(32),
-  doi VARCHAR(32),
+CREATE TABLE publications
+(
+  scopus_id BIGINT PRIMARY KEY NOT NULL,
+  eid VARCHAR(64),
+  doi VARCHAR(64),
   creator TEXT,
   title TEXT,
-  description TEXT,
-  journal VARCHAR(64),
-  volume VARCHAR(32),
-  date VARCHAR(32),
+  description LONGTEXT,
+  journal TEXT,
+  volume VARCHAR(64),
+  date VARCHAR(64),
   authors LONGTEXT,
   keywords TEXT,
   citations TEXT
@@ -29,16 +30,17 @@ CREATE TABLE publications(
 CREATE UNIQUE INDEX publications_scopus_id_uindex ON publications (scopus_id);
 CREATE UNIQUE INDEX publications_eid_uindex ON publications (eid);
 CREATE UNIQUE INDEX publications_doi_unidex ON publications (doi);
+ALTER TABLE publications ENGINE=InnoDB;
 
 CREATE TABLE publication_cache
 (
     scopus_id BIGINT PRIMARY KEY NOT NULL,
-    eid VARCHAR(32),
-    doi VARCHAR(32),
+    eid VARCHAR(64),
+    doi VARCHAR(64),
     creator TEXT,
-    description TEXT,
+    description LONGTEXT,
     title TEXT,
-    journal VARCHAR(64),
+    journal TEXT,
     volume VARCHAR(32),
     keywords TEXT,
     date VARCHAR(32),
@@ -48,6 +50,7 @@ CREATE TABLE publication_cache
 CREATE UNIQUE INDEX publication_cache_scopus_id_uindex ON publication_cache (scopus_id);
 CREATE UNIQUE INDEX publication_cache_eid_uindex ON publication_cache (eid);
 CREATE UNIQUE INDEX publication_cache_doi_uindex ON publication_cache (doi);
+ALTER TABLE publication_cache ENGINE=InnoDB;
 
 CREATE TABLE author_cache
 (

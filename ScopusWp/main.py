@@ -2,6 +2,10 @@ from ScopusWp.controller import TopController
 
 import optparse
 
+# TODO: Make a citations reference database
+# TODO: Make the new citations functionality with update date
+# TODO: Make update date into the main reference
+
 
 def main():
 
