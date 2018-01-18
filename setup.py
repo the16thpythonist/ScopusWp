@@ -143,18 +143,14 @@ class CustomDevelopCommand(develop):
 
 setup(
     name='scopus.wp',
-    version='0.0.0.dev33',
+    version='0.0.0.dev38',
     description='A tool for a wordpress server which will automatically post science publications from scopus database',
     url='https://github.com/the16thpythonist/ScopusWp',
     author='Jonas Teufel',
     author_email='jonseb1998@gmail.com',
     license='MIT',
-    packages=['ScopusWp', 'ScopusWp/scopus', 'ScopusWp/cache', 'ScopusWp/logs'],
-    include_package_data=True,
-    cmdclass={
-        'install': CustomInstallCommand,
-        'develop': CustomDevelopCommand
-    },
+    packages=['ScopusWp', 'ScopusWp/scopus'],
+    include_package_data=False,
     install_requires=[
         'requests>=2.0',
         'mysqlclient>=1.2',
@@ -164,6 +160,6 @@ setup(
     ],
     python_requires='>=3, <4',
     package_data={
-        '': ['*.sql', '*.json', '*.pkl', '*.ini']
+        '': [] #['*.sql', '*.json', '*.pkl', '*.ini']
     },
 )

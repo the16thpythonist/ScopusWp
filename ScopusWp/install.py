@@ -613,11 +613,9 @@ class FolderSetupController:
     def __init__(self):
         self.path = PATH
 
-        self.logs_path = pathlib.Path(PATH)
-        self.logs_path.joinpath('logs')
+        self.logs_path = pathlib.Path(PATH + '/logs')
 
-        self.temp_path = pathlib.Path(PATH)
-        self.temp_path.joinpath('temp')
+        self.temp_path = pathlib.Path(PATH + '/temp')
 
     def run(self):
         if not self.logs_exists():
@@ -676,8 +674,7 @@ class ConfigSetupController:
     def __init__(self):
         self.path = PATH
 
-        self.config_path = pathlib.Path(PATH)
-        self.config_path.joinpath('config.ini')
+        self.config_path = pathlib.Path(PATH + '/config.ini')
 
     def run(self):
         if not self.exists():
@@ -707,8 +704,7 @@ class IdsJsonSetupController:
     def __init__(self):
         self.path = PATH
 
-        self.ids_path = pathlib.Path(PATH)
-        self.ids_path.joinpath('ids.json')
+        self.ids_path = pathlib.Path(PATH + '/ids.json')
 
     def run(self):
         if not self.exists():
@@ -745,8 +741,7 @@ class ObservedAuthorsSetupController:
     )
 
     def __init__(self):
-        self.authors_path = pathlib.Path(PATH)
-        self.authors_path.joinpath('scopus/authors.ini')
+        self.authors_path = pathlib.Path(PATH + '/scopus/authors.ini')
 
     def run(self):
         if not self.exists():
@@ -856,7 +851,6 @@ class SQLSetupController:
 class SetupController:
 
     def __init__(self):
-        self.sql_setup_controller = SQLSetupController()
         self.folder_setup_controller = FolderSetupController()
         self.ids_setup_controller = IdsJsonSetupController()
         self.config_setup_controller = ConfigSetupController()
@@ -867,7 +861,6 @@ class SetupController:
         self.config_setup_controller.run()
         self.ids_setup_controller.run()
         self.observed_author_setup_controller.run()
-        self.sql_setup_controller.run()
 
 
 if __name__ == '__main__':
