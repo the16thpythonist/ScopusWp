@@ -49,7 +49,7 @@ class TopController:
         for scopus_id in scopus_id_difference_list:
             # obviously without caching as we want the newest version of the publications, so they are fresh for as
             # long as possible
-            publication = self.scopus_controller.get_publication(scopus_id, caching=False)
+            publication = self.scopus_controller.get_publication(scopus_id, caching=True)
             publication_list.append(publication)
 
         # Filtering those publications by the whitelist blacklist criteria of the affiliations
@@ -84,10 +84,10 @@ class TopController:
                 publication.citations,
                 caching=caching
             )
-            for citation_publication in citation_publication_list:
-                self.post_scopus_citation(publication, citation_publication)
+            for citation_scopus_publication in citation_publication_list:
+                self.post_scopus_citation(publication, citation_scopus_publication)
 
-    def post_scopus_citation(self, post_publication, citation_publication):
+    def post_scopus_citation(self, post_publication, citation_scopus_publication):
         """
         Posts the given citation publication as a citation to the post publication, upon which a wordpress post is
         based on the website.
@@ -103,11 +103,13 @@ class TopController:
         reference_tuple = self.reference_controller.select_reference_by_scopus(scopus_id_post_publication)
 
         # Posting the citation to the actual
+        citation_publication = self.reference_controller.publication_from_scopus(citation_scopus_publication)
         wordpress_id = reference_tuple[1]
         self.wordpress_controller.post_citations(wordpress_id, [citation_publication])
 
         # Saving the citation publication in the backup database for possible future use
-        self.scopus_controller.insert_publication_backup(citation_publication)
+        self.scopus_controller.insert_publication_backup(citation_scopus_publication)
+        self.reference_controller.save()
         self.scopus_controller.backup_controller.save()
 
     def post_scopus_publication(self, scopus_publication):

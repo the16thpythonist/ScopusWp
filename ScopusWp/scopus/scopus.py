@@ -482,8 +482,6 @@ class ScopusPublicationController(ScopusBaseController):
         # Sending the url request and fetching the response
         response = requests.get(url, headers=self.headers)
 
-        pprint.pprint(json.loads(response.text))
-
         return response
 
     def request_citations_search(self, eid, start=0, count=200):
@@ -514,6 +512,9 @@ class ScopusPublicationController(ScopusBaseController):
         response = self.request_abstract_retrieval(scopus_id)
         response_dict = self._get_response_dict(response)
 
+        publication = self._publication_from_response_dict(response_dict, scopus_id)
+
+    def _publication_from_response_dict(self, response_dict, scopus_id):
         # Extracting the main info from the response dict, which are the coredata dict, the
         (
             coredata_dict,
@@ -561,6 +562,24 @@ class ScopusPublicationController(ScopusBaseController):
         )
 
         return publication
+
+    def get_citation_publications(self, eid):
+        # Requesting the citation search and processing the response into a dictionary
+        response = self.request_citations_search(eid)
+        pprint.pprint(json.loads(response.text))
+        response_dict = self._get_response_dict(response)
+
+        # Getting the list of scopus ids for the citing publications
+        search_entry_list = self._extract_search_response_dict(response_dict)
+
+        publication_list = []
+        for search_entry_dict in search_entry_list:
+            scopus_id = self._get_scopus_id(search_entry_dict)
+            if scopus_id != '':
+                publication = self._publication_from_response_dict(search_entry_dict, scopus_id)
+                publication_list.append(publication)
+
+        return publication_list
 
     def get_citations(self, eid):
         """
@@ -844,7 +863,7 @@ class ScopusController:
         :param publication: The publication of which the citing publications shall be gotten
         :return: A list of ScopusPublications
         """
-        return self.get_multiple_publications(publication.citations)
+        return self.publication_controller.get_citation_publications(publication.eid)
 
     def get_publication_author_profiles(self, publication):
         """

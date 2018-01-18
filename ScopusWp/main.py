@@ -33,4 +33,4 @@ def main():
 if __name__ == '__main__':
     #main()
     controller = TopController()
-    controller.repopulate_website(True)
+    controller.update_publications_website()

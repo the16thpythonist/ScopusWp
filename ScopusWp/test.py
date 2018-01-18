@@ -262,4 +262,10 @@ def test_kit_open():
     print(response.text)
 
 
-test_kit_open()
+from ScopusWp.scopus.scopus import ScopusPublicationController
+
+con = ScopusPublicationController()
+resp = con.request_citations_search('2-s2.0-85006996222')
+import pprint
+import json
+pprint.pprint(json.loads(resp.text))

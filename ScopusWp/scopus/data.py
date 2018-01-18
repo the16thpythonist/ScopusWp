@@ -108,6 +108,8 @@ class ScopusPublication(ScopusIdentifierInterface, DictionaryConversionInterface
         self.creator = creator
         self.authors = author_list
         self.citations = citation_list
+        if '' in self.citations:
+            self.citations.remove('')
         self.keywords = list(map(self._rip, keyword_list))
         self.journal = unidecode(journal).replace('"', "'")
         self.volume = volume
@@ -260,8 +262,8 @@ class ScopusAuthor(ScopusIdentifierInterface, DictionaryConversionInterface):
         DictionaryConversionInterface.__init__(self)
 
         self.id = id
-        self.first_name = first_name.replace("'", "")
-        self.last_name = last_name.replace("'", "")
+        self.first_name = unidecode(first_name).replace("'", "")
+        self.last_name = unidecode(last_name).replace("'", "")
         self.id = id
         self.affiliations = affiliation_list
         if '' in self.affiliations:

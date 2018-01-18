@@ -170,6 +170,9 @@ class ScopusTopController:
             # And then writing it into the cache for the next time
             self.cache_controller.insert_publication(publication)
             self.cache_controller.save()
+
+            publication2 = self.cache_controller.select_publication(scopus_id)
+            self.cache_controller.save()
         return publication
 
     def get_multiple_publications(self, scopus_id_list, caching=True):
@@ -205,7 +208,7 @@ class ScopusTopController:
         for author_profile in author_profile_list:
             _scopus_id_list = author_profile.publications
             _difference = list(set(_scopus_id_list) - set(scopus_id_list))
-            scopus_id_list.append(_difference)
+            scopus_id_list += _difference
         if '' in scopus_id_list:
             scopus_id_list.remove('')
 
@@ -388,6 +391,13 @@ class ScopusTopController:
 
             # Loading all those publications into the cache as well
             self.load_publications_cache(citation_scopus_id_list)
+
+    def get_citation_publications(self, publication):
+        publication_list = self.scopus_controller.get_citation_publications(publication)
+        # Caching all the citation publications
+        for publication in publication_list:
+            self.cache_controller.insert_publication(publication)
+        return publication_list
 
     ######################
     # THE SCOPUS METHODS #

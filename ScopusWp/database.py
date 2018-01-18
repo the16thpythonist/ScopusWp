@@ -72,9 +72,10 @@ class MySQLDatabaseAccess(SQLDatabaseAccessInterface):
         self.logger = logging.getLogger(SQL_LOGGING_EXTENSION)
 
     def save(self):
-        # self.cursor.close()
-        self.db.commit()
-        # self.cursor = self.db.cursor()
+        #self.db.commit()
+        #self.cursor.close()
+        #self.cursor = self.db.cursor()
+        a = 1
 
     def execute(self, sql):
         try:

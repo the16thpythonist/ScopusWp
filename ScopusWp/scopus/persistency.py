@@ -111,8 +111,8 @@ class ScopusCacheController:
 
     def __init__(self, publication_cache_model_class, author_cache_model_class):
 
-        self.publication_cache_model = publication_cache_model_class()  # type: ScopusPublicationPickleCacheModel
-        self.author_cache_model = author_cache_model_class()  # type: ScopusAuthorPickleCacheModel
+        self.publication_cache_model = publication_cache_model_class()  # type: ScopusPublicationDatabaseCacheModel
+        self.author_cache_model = author_cache_model_class()  # type: ScopusAuthorDatabaseCacheModel
 
     def insert_author_profile(self, author_profile):
         self.author_cache_model.insert(author_profile)
@@ -422,7 +422,7 @@ class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
         self.database_access.execute(sql)
 
     def insert(self, publication):
-        if not isinstance(publication.id, int):
+        if publication is None or publication.id == '':
             return None
         # Converting all the data so it fits into a database data column
 
@@ -479,6 +479,7 @@ class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
             'authors = "{authors}", '
             'keywords = "{keywords}", '
             'citations = "{citations}";'
+            'COMMIT;'
         ).format(
             database=self.database_name,
             scopus_id=publication.id,
@@ -566,7 +567,7 @@ class ScopusPublicationDatabaseCacheModel(PublicationPersistencyInterface):
             return publication
 
     def contains(self, publication):
-        if not(isinstance(publication, ScopusPublication) or isinstance(publication, int)):
+        if publication == '':
             return False
 
         sql = (
