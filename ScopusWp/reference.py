@@ -95,7 +95,11 @@ class ReferenceController:
     def __init__(self):
 
         self.reference_model = ReferenceModel()
+
         self.id_manager = IDManagerSingleton.get_instance()
+
+        # The model for the comment reference model
+        self.comment_reference_model = CommentReferenceModel()
 
     def select_reference(self, internal_id):
         return self.reference_model.select(internal_id)
@@ -112,6 +116,9 @@ class ReferenceController:
 
     def insert_reference(self, internal_id, wordpress_id, scopus_id):
         self.reference_model.insert(internal_id, wordpress_id, scopus_id)
+
+    # def insert_citation_reference(self, internal_id, wordpress_post_id, wordpress_comment_id, scopus_id):
+
 
     def insert_publication(self, publication, wordpress_id, scopus_id):
         assert isinstance(publication, Publication)
