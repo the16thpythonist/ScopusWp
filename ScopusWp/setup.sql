@@ -12,6 +12,16 @@ CREATE TABLE reference
 CREATE UNIQUE INDEX reference_id_uindex ON reference (id);
 ALTER TABLE reference ENGINE=InnoDB;
 
+CREATE TABLE citation_reference
+(
+    `internal _id` BIGINT PRIMARY KEY,
+    wordpress_post_id BIGINT,
+    wordpress_comment_id BIGINT,
+    scopus_id BIGINT
+);
+CREATE UNIQUE INDEX citation_reference_wordpress_post_id_uindex ON citation_reference (wordpress_post_id);
+ALTER TABLE citation_reference ENGINE=INNODB;
+
 CREATE TABLE publications
 (
   scopus_id BIGINT PRIMARY KEY NOT NULL,

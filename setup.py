@@ -1,12 +1,4 @@
 from setuptools import setup
-from setuptools import find_packages
-
-from setuptools.command.install import install
-from setuptools.command.egg_info import egg_info
-from setuptools.command.develop import develop
-
-import configparser
-import os
 
 
 setup(

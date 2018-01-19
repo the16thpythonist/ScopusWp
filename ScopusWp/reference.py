@@ -1,4 +1,5 @@
 from ScopusWp.config import PATH
+from ScopusWp.config import Config
 
 from ScopusWp.database import MySQLDatabaseAccess
 
@@ -6,6 +7,7 @@ from ScopusWp.data import Publication
 
 import json
 import pathlib
+
 
 
 class IDManagerInterface:
@@ -233,3 +235,87 @@ class ReferenceModel:
 
         row_list = self.database_access.select(sql)
         return row_list[0]
+
+
+class CommentReferenceModel:
+
+    def __init__(self):
+
+        self.config = Config.get_instance()
+        # Getting the database table name for the comment reference table
+        self.database_name = self.config['SQL']['comment_reference_table']
+
+        self.database_access = MySQLDatabaseAccess()
+
+    def insert(self, internal_id, wordpress_post_id, wordpress_citation_id, scopus_id):
+
+        sql = (
+            'INSERT INTO {database}'
+            '('
+            'internal_id,'
+            'wordpress_post_id,'
+            'wordpress_comment_id,'
+            'scopus_id'
+            ')'
+            'VALUES'
+            '('
+            '{internal_id},'
+            '{wordpress_post_id},'
+            '{wordpress_citation_id},'
+            '{scopus_id}'
+            ')'
+            'ON DUPLICATE KEY UPDATE '
+            'internal_id = {internal_id},'
+            'wordpress_post_id = {wordpress_post_id},'
+            'wordpress_citation_id = {wordpress_citation_id},'
+            'scopus_id = {scopus_id};'
+            'COMMIT;'
+        ).format(
+            database=self.database_name,
+            internal_id=internal_id,
+            wordpress_post_id=wordpress_post_id,
+            wordpress_citation_id=wordpress_citation_id,
+            scopus_id=scopus_id
+        )
+
+        self.database_access.execute(sql)
+
+    def select(self, internal_id):
+
+        sql = (
+            'SELECT '
+            'internal_id,'
+            'wordpress_post_id,'
+            'wordpress_comment_id,'
+            'scopus_id '
+            'FROM {database} '
+            'WHERE internal_id={internal_id};'
+        ).format(
+            database=self.database_name,
+            internal_id=internal_id
+        )
+
+        row_list = self.database_access.select(sql)
+
+        if len(row_list) != 1:
+            # TODO: Think of whether to throw an error or w/e
+            pass
+
+        return row_list[0]
+
+    def select_all(self):
+
+        sql = (
+            'SELECT '
+            'internal_id,'
+            'wordpress_post_id,'
+            'wordpress_comment_id,'
+            'scopus_id '
+            'FROM {database} '
+        ).format(
+            database=self.database_name
+        )
+
+        row_list = self.database_access.select(sql)
+
+        return row_list
