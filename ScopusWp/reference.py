@@ -117,8 +117,22 @@ class ReferenceController:
     def insert_reference(self, internal_id, wordpress_id, scopus_id):
         self.reference_model.insert(internal_id, wordpress_id, scopus_id)
 
-    # def insert_citation_reference(self, internal_id, wordpress_post_id, wordpress_comment_id, scopus_id):
+    def insert_comment_reference(self, internal_id, wordpress_post_id, wordpress_comment_id, scopus_id):
+        """
+        Inserts a new comment reference into the comment reference database
 
+        :param internal_id: The internally created id for the post
+        :param wordpress_post_id: The id of the wordpress post, the comment is added to
+        :param wordpress_comment_id: The comment id specifically
+        :param scopus_id: The scopus id of the publication on which the comment is based on
+        :return: void
+        """
+        self.comment_reference_model.insert(
+            internal_id,
+            wordpress_post_id,
+            wordpress_comment_id,
+            scopus_id
+        )
 
     def insert_publication(self, publication, wordpress_id, scopus_id):
         assert isinstance(publication, Publication)
