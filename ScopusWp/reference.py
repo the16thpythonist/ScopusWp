@@ -134,6 +134,15 @@ class ReferenceController:
             scopus_id
         )
 
+    def select_comment_reference_list_py_post(self, wordpress_post_id):
+        """
+        Gets a list of all the comment references for the post specified by the wordpress id
+
+        :param wordpress_post_id: The int id of the wordpress post
+        :return: [(internal id, post id, comment id, scopus id)]
+        """
+        return self.comment_reference_model.select_by_wordpress_post_id(wordpress_post_id)
+
     def insert_publication(self, publication, wordpress_id, scopus_id):
         assert isinstance(publication, Publication)
 
