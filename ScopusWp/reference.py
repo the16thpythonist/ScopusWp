@@ -319,3 +319,33 @@ class CommentReferenceModel:
         row_list = self.database_access.select(sql)
 
         return row_list
+
+    def select_by_wordpress_post_id(self, wordpress_post_id):
+        sql = (
+            'SELECT '
+            'internal_id,'
+            'wordpress_post_id,'
+            'wordpress_comment_id,'
+            'scopus_id '
+            'FROM {database} '
+            'WHERE '
+            'wordpress_post_id={wordpress_post_id}'
+        ).format(
+            database=self.database_name,
+            wordpress_post_id=wordpress_post_id
+        )
+
+        row_list = self.database_access.select(sql)
+
+        return row_list
+
+    def wipe(self):
+
+        sql = (
+            'TRUNCATE {database};'
+            'COMMIT;'
+        ).format(
+            database=self.database_name
+        )
+
+        self.database_access.execute(sql)
