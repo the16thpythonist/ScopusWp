@@ -156,7 +156,7 @@ class ReferenceController:
         publication = Publication.from_scopus_publication(scopus_publication, publication_id)
         return publication
 
-    def select_reference_by_scopus(self, scopus_id):
+    def select_post_reference_by_scopus(self, scopus_id):
         """
         Select the reference by the scopus id.
 
