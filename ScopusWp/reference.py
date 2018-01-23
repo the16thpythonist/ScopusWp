@@ -165,6 +165,15 @@ class ReferenceController:
         """
         return self.reference_model.search_by_scopus(scopus_id)
 
+    def select_post_reference_by_wordpress(self, wordpress_post_id):
+        """
+        Select the reference by the wordpress id of the post.
+
+        :param wordpress_post_id: The int wordpress id
+        :return: (internal id, wordpress id, scopus id)
+        """
+        return self.reference_model.search_by_wordpress(wordpress_post_id)
+
     def wipe(self):
         self.reference_model.wipe()
 
