@@ -125,8 +125,14 @@ class TopController:
 
         # Posting the citation to the actual
         citation_publication = self.reference_controller.publication_from_scopus(citation_scopus_publication)
-        wordpress_id = reference_tuple[1]
-        self.wordpress_controller.post_citations(wordpress_id, [citation_publication])
+        wordpress_post_id = reference_tuple[1]
+        wordpress_comment_id = self.wordpress_controller.post_citations(wordpress_id, [citation_publication])[0]
+        self.reference_controller.insert_comment_reference(
+            int(citation_publication),
+            wordpress_post_id,
+            wordpress_comment_id,
+            int(citation_scopus_publication)
+        )
 
         # Saving the citation publication in the backup database for possible future use
         self.scopus_controller.insert_publication_backup(citation_scopus_publication)
