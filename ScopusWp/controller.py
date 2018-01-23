@@ -19,7 +19,27 @@ class TopController:
         pass
 
     def update_citations_website(self):
-        pass
+        # Getting all the publications currently on the website
+        post_reference_list = self.reference_controller.select_all_references()
+        # for each publication getting the comment reference and the new publication from scopus
+        for post_reference in post_reference_list:
+            wordpress_id = post_reference[1]
+
+    def update_citations_post(self, wordpress_post_id):
+        # Getting the list of all the comment publications from the comment reference database
+        comment_reference_list = self.reference_controller.select_comment_reference_list_py_post(wordpress_post_id)
+        old_citation_list = list(map(lambda x: x[3], comment_reference_list))
+        # Getting the post reference tuple
+        post_reference = self.reference_controller.select_post_reference_by_wordpress(wordpress_post_id)
+        post_scopus_id = post_reference[2]
+        post_publication = self.scopus_controller.get_publication(post_scopus_id, caching=False)
+        new_citation_list = post_publication.citations
+        # Building the difference from the new and old citation list
+        difference = list(set(new_citation_list) - set(old_citation_list))
+        # Requesting the publication itself from scopus to check for new citations
+        for scopus_id in difference:
+            citation_publication = self.scopus_controller.get_publication(scopus_id)
+            self.post_scopus_citation(post_publication, citation_publication)
 
     def update_publications_website(self):
         # THE SCOPUS PART
