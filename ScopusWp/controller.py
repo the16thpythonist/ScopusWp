@@ -23,7 +23,8 @@ class TopController:
         post_reference_list = self.reference_controller.select_all_references()
         # for each publication getting the comment reference and the new publication from scopus
         for post_reference in post_reference_list:
-            wordpress_id = post_reference[1]
+            wordpress_post_id = post_reference[1]
+            self.update_citations_post(wordpress_post_id)
 
     def update_citations_post(self, wordpress_post_id):
         # Getting the list of all the comment publications from the comment reference database
@@ -120,7 +121,7 @@ class TopController:
         """
         # Getting the wordpress id of the according post from the reference database
         scopus_id_post_publication = int(post_publication)
-        reference_tuple = self.reference_controller.select_reference_by_scopus(scopus_id_post_publication)
+        reference_tuple = self.reference_controller.select_post_reference_by_scopus(scopus_id_post_publication)
 
         # Posting the citation to the actual
         citation_publication = self.reference_controller.publication_from_scopus(citation_scopus_publication)
