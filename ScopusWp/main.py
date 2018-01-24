@@ -21,13 +21,17 @@ def main():
 
     if args[0] == 'publications':
         controller = TopController()
-        controller.update_publications_website()
-        controller.close()
+        try:
+            controller.update_publications_website()
+        finally:
+            controller.close()
 
     elif args[0] == 'citations':
         controller = TopController()
-        controller.update_citations_website()
-        controller.close()
+        try:
+            controller.update_citations_website()
+        finally:
+            controller.close()
 
     elif args[0] == 'wipe':
         controller = TopController()
@@ -37,4 +41,7 @@ def main():
 if __name__ == '__main__':
     #main()
     controller = TopController()
-    controller.update_citations_website()
+    try:
+        controller.update_citations_website()
+    finally:
+        controller.close()
