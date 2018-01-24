@@ -32,6 +32,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
-    #controller = TopController()
-    #controller.update_publications_website()
+    #main()
+    controller = TopController()
+    controller.update_citations_website()

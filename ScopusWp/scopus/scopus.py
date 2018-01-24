@@ -513,6 +513,7 @@ class ScopusPublicationController(ScopusBaseController):
         response_dict = self._get_response_dict(response)
 
         publication = self._publication_from_response_dict(response_dict, scopus_id)
+        return publication
 
     def _publication_from_response_dict(self, response_dict, scopus_id):
         # Extracting the main info from the response dict, which are the coredata dict, the

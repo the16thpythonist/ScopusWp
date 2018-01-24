@@ -252,7 +252,18 @@ class ReferenceModel:
         self.database_access.execute(sql)
 
     def search_by_wordpress(self, wordpress_id):
-        pass
+        sql = (
+            'SELECT '
+            'id, '
+            'wordpress_id, '
+            'scopus_id '
+            'FROM reference WHERE wordpress_id={wordpress_id}'
+        ).format(
+            wordpress_id=wordpress_id
+        )
+
+        row_list = self.database_access.select(sql)
+        return row_list[0]
 
     def search_by_scopus(self, scopus_id):
         """
@@ -282,7 +293,7 @@ class CommentReferenceModel:
 
         self.config = Config.get_instance()
         # Getting the database table name for the comment reference table
-        self.database_name = self.config['SQL']['comment_reference_table']
+        self.database_name = self.config['MYSQL']['comment_reference_table']
 
         self.database_access = MySQLDatabaseAccess()
 
@@ -306,7 +317,7 @@ class CommentReferenceModel:
             'ON DUPLICATE KEY UPDATE '
             'internal_id = {internal_id},'
             'wordpress_post_id = {wordpress_post_id},'
-            'wordpress_citation_id = {wordpress_citation_id},'
+            'wordpress_comment_id = {wordpress_citation_id},'
             'scopus_id = {scopus_id};'
             'COMMIT;'
         ).format(

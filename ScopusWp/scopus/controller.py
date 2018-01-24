@@ -170,9 +170,6 @@ class ScopusTopController:
             # And then writing it into the cache for the next time
             self.cache_controller.insert_publication(publication)
             self.cache_controller.save()
-
-            publication2 = self.cache_controller.select_publication(scopus_id)
-            self.cache_controller.save()
         return publication
 
     def get_multiple_publications(self, scopus_id_list, caching=True):

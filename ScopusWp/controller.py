@@ -34,7 +34,7 @@ class TopController:
         post_reference = self.reference_controller.select_post_reference_by_wordpress(wordpress_post_id)
         post_scopus_id = post_reference[2]
         post_publication = self.scopus_controller.get_publication(post_scopus_id, caching=False)
-        new_citation_list = post_publication.citations
+        new_citation_list = list(map(lambda x: int(x), post_publication.citations))
         # Building the difference from the new and old citation list
         difference = list(set(new_citation_list) - set(old_citation_list))
         # Requesting the publication itself from scopus to check for new citations
@@ -126,12 +126,12 @@ class TopController:
         # Posting the citation to the actual
         citation_publication = self.reference_controller.publication_from_scopus(citation_scopus_publication)
         wordpress_post_id = reference_tuple[1]
-        wordpress_comment_id = self.wordpress_controller.post_citations(wordpress_id, [citation_publication])[0]
+        wordpress_comment_id = self.wordpress_controller.post_citations(wordpress_post_id, [citation_publication])[0]
         self.reference_controller.insert_comment_reference(
-            int(citation_publication),
+            citation_publication.id,
             wordpress_post_id,
             wordpress_comment_id,
-            int(citation_scopus_publication)
+            citation_scopus_publication.id
         )
 
         # Saving the citation publication in the backup database for possible future use

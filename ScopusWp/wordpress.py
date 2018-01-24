@@ -57,6 +57,7 @@ class WordpressPublicationPostController:
         return post.id
 
     def post_citations(self, wordpress_id, publication_list):
+        comment_id_list = []
         self.enable_comments(wordpress_id)
 
         for publication in publication_list:
@@ -68,12 +69,14 @@ class WordpressPublicationPostController:
             comment.content = comment_view.get_content()
 
             comment_id = self.client.call(NewComment(wordpress_id, comment))
+            comment_id_list.append(comment_id)
 
             date_created = comment_view.get_date()
             comment.date_created = date_created
             self.client.call(EditComment(comment_id, comment))
 
         self.disable_comments(wordpress_id)
+        return comment_id_list
 
     def delete_post(self, wordpress_id):
         self.client.call(DeletePost(wordpress_id))
