@@ -35,7 +35,7 @@ class TopController:
         # Getting the post reference tuple
         post_reference = self.reference_controller.select_post_reference_by_wordpress(wordpress_post_id)
         post_scopus_id = post_reference[2]
-        post_publication = self.scopus_controller.get_publication(post_scopus_id, caching=False)
+        post_publication = self.scopus_controller.get_publication(post_scopus_id, caching=True)
         new_citation_list = list(map(lambda x: int(x), post_publication.citations))
         # Building the difference from the new and old citation list
         difference = list(set(new_citation_list) - set(old_citation_list))

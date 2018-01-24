@@ -244,16 +244,18 @@ class PostReferenceModel:
 
     def insert(self, internal_id, wordpress_id, scopus_id):
         sql = (
-            'INSERT INTO {database} '
+            'INSERT INTO {database}'
             '('
             'id, '
             'wordpress_id, '
             'scopus_id'
             ')'
-            'VALUES ('
+            'VALUES'
+            '('
             '{internal_id},'
             '{wordpress_id}, '
-            '{scopus_id}) '
+            '{scopus_id}'
+            ') '
             'ON DUPLICATE KEY UPDATE '
             'id = {internal_id},'
             'wordpress_id = {internal_id},'
