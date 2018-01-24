@@ -298,7 +298,15 @@ class CommentReferenceModel:
         self.database_access = MySQLDatabaseAccess()
 
     def insert(self, internal_id, wordpress_post_id, wordpress_citation_id, scopus_id):
+        """
+        Inserts a new reference entry into the system.
 
+        :param internal_id: The internal id of the ScopusWp program
+        :param wordpress_post_id: The int id of the wordpress post, on which the comment was posted
+        :param wordpress_citation_id: The int wordpress id of the comment
+        :param scopus_id: The scopus id of the publication, which was posted as the comment
+        :return: void
+        """
         sql = (
             'INSERT INTO {database}'
             '('
@@ -331,7 +339,12 @@ class CommentReferenceModel:
         self.database_access.execute(sql)
 
     def select(self, internal_id):
+        """
+        A reference tuple selected by its internal id.
 
+        :param internal_id: The int internal id
+        :return: (internal id, wordpress post id, wordpress comment id, scopus id)
+        """
         sql = (
             'SELECT '
             'internal_id,'
@@ -354,7 +367,11 @@ class CommentReferenceModel:
         return row_list[0]
 
     def select_all(self):
+        """
+        A list with all the reference tuple objects.
 
+        :return: [(internal id, wordpress post id, wordpress comment id, scopus id)]
+        """
         sql = (
             'SELECT '
             'internal_id,'
@@ -371,6 +388,12 @@ class CommentReferenceModel:
         return row_list
 
     def select_by_wordpress_post_id(self, wordpress_post_id):
+        """
+        Gets a specific comment reference tuple, by the wordpress id of the post, on which the comment was posted to.
+
+        :param wordpress_post_id: The int id of the wordpress post.
+        :return: (internal id, wordpress post id, wordpress comment id, scopus id)
+        """
         sql = (
             'SELECT '
             'internal_id,'
@@ -390,7 +413,11 @@ class CommentReferenceModel:
         return row_list
 
     def wipe(self):
+        """
+        Completely deletes all the entries in the database.
 
+        :return: void
+        """
         sql = (
             'TRUNCATE {database};'
             'COMMIT;'
