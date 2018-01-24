@@ -5,8 +5,12 @@ from ScopusWp.database import MySQLDatabaseAccess
 
 from ScopusWp.data import Publication
 
+import datetime
+
 import json
 import pathlib
+
+DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 class IDManagerInterface:
@@ -118,6 +122,14 @@ class ReferenceController:
         # The model for the comment reference model
         self.comment_reference_model = CommentReferenceModel()
 
+    def updated_comments_post(self, post_publication):
+        current_datetime = datetime.datetime.now()
+        scopus_id = post_publication.id
+        self.reference_model.update_comments_updated_datetime(
+            scopus_id,
+            current_datetime
+        )
+
     def select_reference(self, internal_id):
         return self.reference_model.select(internal_id)
 
@@ -224,6 +236,20 @@ class PostReferenceModel:
         )
         self.database_access.execute(sql)
 
+    def update_comments_updated_datetime(self, scopus_id, datetime_object):
+        # TODO: Make general and scopus id usable
+        sql = (
+            'UPDATE {database} '
+            'SET '
+            'comments_updated_datetime = {comments_updated} '
+            'WHERE '
+            'scopus_id = {scopus_id}'
+        ).format(
+            database=self.database_name,
+            comments_updated=datetime_object.strftime(DATETIME_FORMAT),
+            scopus_id=scopus_id
+        )
+
     def save(self):
         self.database_access.save()
 
@@ -236,9 +262,10 @@ class PostReferenceModel:
         """
         sql = (
             'SELECT '
-            'id, '
+            'internal_id, '
             'wordpress_id,'
-            'scopus_id '
+            'scopus_id,'
+            'comments_updated_datetime '
             'FROM {database} '
         ).format(
             database=self.database_name
@@ -249,9 +276,10 @@ class PostReferenceModel:
     def select(self, internal_id):
         sql = (
             'SELECT '
-            'id, '
+            'internal_id, '
             'wordpress_id,'
-            'scopus_id '
+            'scopus_id,'
+            'comments_updated_datetime '
             'FROM {database} '
             'WHERE id={internal_id}'
         ).format(
@@ -267,9 +295,9 @@ class PostReferenceModel:
         sql = (
             'INSERT INTO {database}'
             '('
-            'id, '
+            'internal_id, '
             'wordpress_id, '
-            'scopus_id'
+            'scopus_id '
             ')'
             'VALUES'
             '('
@@ -278,7 +306,7 @@ class PostReferenceModel:
             '{scopus_id}'
             ') '
             'ON DUPLICATE KEY UPDATE '
-            'id = {internal_id},'
+            'internal_id = {internal_id},'
             'wordpress_id = {internal_id},'
             'scopus_id = {scopus_id} '
             'COMMIT;'
@@ -294,9 +322,10 @@ class PostReferenceModel:
     def search_by_wordpress(self, wordpress_id):
         sql = (
             'SELECT '
-            'id, '
+            'internal_id, '
             'wordpress_id, '
-            'scopus_id '
+            'scopus_id, '
+            'comments_updated_datetime '
             'FROM {database} '
             'WHERE '
             'wordpress_id={wordpress_id}'
@@ -318,9 +347,10 @@ class PostReferenceModel:
         """
         sql = (
             'SELECT '
-            'id,'
+            'internal_id,'
             'wordpress_id,'
-            'scopus_id '
+            'scopus_id,'
+            'comments_updated_datetime '
             'FROM {database} '
             'WHERE '
             'scopus_id={scopus_id}'
