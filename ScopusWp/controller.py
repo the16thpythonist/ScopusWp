@@ -5,6 +5,8 @@ from ScopusWp.reference import ReferenceController
 from ScopusWp.wordpress import WordpressPublicationPostController
 
 from wordpress_xmlrpc.exceptions import InvalidCredentialsError
+import socket
+import wordpress_xmlrpc
 
 
 class TopController:
@@ -142,8 +144,10 @@ class TopController:
                 wordpress_comment_id,
                 citation_scopus_publication.id
             )
-        except InvalidCredentialsError:
+        except wordpress_xmlrpc.exceptions.InvalidCredentialsError:
             print('Duplicate comment!')
+        except socket.gaierror:
+            print('socket error wordpress')
 
         # Saving the citation publication in the backup database for possible future use
         self.scopus_controller.insert_publication_backup(citation_scopus_publication)

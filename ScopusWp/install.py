@@ -70,6 +70,8 @@ class ConfigSetupController:
         '# the table names if you wish. It is recommended to keep the default\n'
         'publication_cache_table = publication_cache\n'
         'author_cache_table = author_cache\n'
+        'post_reference_table = reference\n'
+        'comment_reference_table = comment_reference\n'
     )
 
     def __init__(self):
@@ -168,6 +170,19 @@ class SQLSetupController:
         'COMMIT;'
     )
 
+    COMMENT_REFERENCE_SQL = (
+        'CREATE TABLE comment_reference'
+        '('
+        'internal_id BIGINT PRIMARY KEY,'
+        'wordpress_post_id BIGINT,'
+        'wordpress_comment_id BIGINT,'
+        'scopus_id BIGINT'
+        ');'
+        'CREATE UNIQUE INDEX comment_reference_inernal_id_uindex ON comment_reference (internal_id);'
+        'ALTER TABLE comment_reference ENGINE=INNODB;'
+        'COMMIT;'
+    )
+
     PUBLICATIONS_SQL = (
         'CREATE TABLE publications ('
         'scopus_id BIGINT PRIMARY KEY NOT NULL,'
@@ -237,6 +252,9 @@ class SQLSetupController:
 
         if not self.database_exists('reference'):
             self.access.execute(self.REFERENCE_SQL)
+
+        if not self.database_exists('comment_reference'):
+            self.access.execute(self.COMMENT_REFERENCE_SQL)
 
     def database_exists(self, database_name):
         try:

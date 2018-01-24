@@ -2,11 +2,10 @@ from ScopusWp.controller import TopController
 
 import optparse
 
-# TODO: Make a citations reference database
 # TODO: Make a fail proof for the citation comment wordpress not well formed
 # TODO: Make the new citations functionality with update date
 # TODO: Make update date into the main reference
-# TODO: Finally clean up the installation process
+
 
 
 def main():
