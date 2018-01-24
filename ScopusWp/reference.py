@@ -9,7 +9,6 @@ import json
 import pathlib
 
 
-
 class IDManagerInterface:
 
     def new(self):
@@ -45,6 +44,11 @@ class IDManagerSingleton(IDManagerInterface):
         self.pointer = content_dict['pointer']
 
     def save(self):
+        """
+        Saves the the content dict, which contains the info about the used ids into a json file in the project folder
+
+        :return: void
+        """
         with self.path.open(mode='w') as file:
             content_dict = {
                 'used': self.used_ids,
@@ -54,7 +58,15 @@ class IDManagerSingleton(IDManagerInterface):
             json.dump(content_dict, file)
 
     def new(self):
+        """
+        Creates and returns a new id to use.
+
+        Updates the created id into the list of used ids directly and increments the pointer, that indicates the amount
+        of used ids.
+        :return: The int id that has been created
+        """
         self.pointer += 1
+        self.used_ids.append(self.pointer)
         return self.pointer
 
     def delete(self, publication_id):
@@ -63,6 +75,11 @@ class IDManagerSingleton(IDManagerInterface):
             self.unused_ids.append(publication_id)
 
     def load(self):
+        """
+        Loads the information about the used ids from the json file in the project folder.
+
+        :return: the dict, that contains the list if used and unused ids as well as the pointer for the amount of ids
+        """
         with self.path.open(mode='r') as file:
             content_dict = json.load(file)
         return content_dict
