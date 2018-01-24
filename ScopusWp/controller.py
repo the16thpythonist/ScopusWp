@@ -14,6 +14,9 @@ class TopController:
         self.reference_controller = ReferenceController()
         self.wordpress_controller = WordpressPublicationPostController()
 
+    def close(self):
+        self.reference_controller.close()
+
     def update_website(self):
         # Getting all the publications that are saved in the backup system
         # Getting the user profiles of all the observed users

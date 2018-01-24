@@ -22,15 +22,17 @@ def main():
     if args[0] == 'publications':
         controller = TopController()
         controller.update_publications_website()
+        controller.close()
 
     elif args[0] == 'citations':
         controller = TopController()
         controller.update_citations_website()
+        controller.close()
 
     elif args[0] == 'wipe':
         controller = TopController()
         controller.wipe_website()
-
+        controller.close()
 
 if __name__ == '__main__':
     #main()

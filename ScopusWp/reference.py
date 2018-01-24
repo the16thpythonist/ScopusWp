@@ -180,6 +180,10 @@ class ReferenceController:
     def save(self):
         self.reference_model.save()
 
+    def close(self):
+        self.reference_model.save()
+        self.id_manager.save()
+
 
 # TODO: Think about dependency injection for database access?
 
