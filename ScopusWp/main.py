@@ -24,7 +24,8 @@ def main():
         controller.update_publications_website()
 
     elif args[0] == 'citations':
-        print('works')
+        controller = TopController()
+        controller.update_citations_website()
 
     elif args[0] == 'wipe':
         controller = TopController()

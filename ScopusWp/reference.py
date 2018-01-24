@@ -94,7 +94,7 @@ class ReferenceController:
 
     def __init__(self):
 
-        self.reference_model = ReferenceModel()
+        self.reference_model = PostReferenceModel()
 
         self.id_manager = IDManagerSingleton.get_instance()
 
@@ -183,7 +183,7 @@ class ReferenceController:
 
 # TODO: Think about dependency injection for database access?
 
-class ReferenceModel:
+class PostReferenceModel:
 
     def __init__(self):
         self.id_manager = IDManagerSingleton.get_instance()  # type: IDManagerSingleton
@@ -191,8 +191,16 @@ class ReferenceModel:
         # The actual data base access
         self.database_access = MySQLDatabaseAccess()
 
+        self.config = Config.get_instance()
+        self.database_name = self.config['MYSQL']['post_reference_table']
+
     def wipe(self):
-        sql = 'TRUNCATE reference'
+        sql = (
+            'TRUNCATE TABLE {database};'
+            'COMMIT;'
+        ).format(
+            database=self.database_name
+        )
         self.database_access.execute(sql)
 
     def save(self):
@@ -210,7 +218,9 @@ class ReferenceModel:
             'id, '
             'wordpress_id,'
             'scopus_id '
-            'FROM reference '
+            'FROM {database} '
+        ).format(
+            database=self.database_name
         )
         row_list = self.database_access.select(sql)
         return row_list
@@ -221,9 +231,10 @@ class ReferenceModel:
             'id, '
             'wordpress_id,'
             'scopus_id '
-            'FROM reference '
+            'FROM {database} '
             'WHERE id={internal_id}'
         ).format(
+            database=self.database_name,
             internal_id=internal_id
         )
 
@@ -233,17 +244,23 @@ class ReferenceModel:
 
     def insert(self, internal_id, wordpress_id, scopus_id):
         sql = (
-            'INSERT IGNORE INTO '
-            'reference ('
+            'INSERT INTO {database} '
+            '('
             'id, '
             'wordpress_id, '
-            'scopus_id)'
+            'scopus_id'
+            ')'
             'VALUES ('
             '{internal_id},'
             '{wordpress_id}, '
-            '{scopus_id});'
+            '{scopus_id}) '
+            'ON DUPLICATE KEY UPDATE '
+            'id = {internal_id},'
+            'wordpress_id = {internal_id},'
+            'scopus_id = {scopus_id} '
             'COMMIT;'
         ).format(
+            database=self.database_name,
             internal_id=internal_id,
             wordpress_id=wordpress_id,
             scopus_id=scopus_id
@@ -257,8 +274,11 @@ class ReferenceModel:
             'id, '
             'wordpress_id, '
             'scopus_id '
-            'FROM reference WHERE wordpress_id={wordpress_id}'
+            'FROM {database} '
+            'WHERE '
+            'wordpress_id={wordpress_id}'
         ).format(
+            database=self.database_name,
             wordpress_id=wordpress_id
         )
 
@@ -278,8 +298,11 @@ class ReferenceModel:
             'id,'
             'wordpress_id,'
             'scopus_id '
-            'FROM reference WHERE scopus_id={scopus_id}'
+            'FROM {database} '
+            'WHERE '
+            'scopus_id={scopus_id}'
         ).format(
+            database=self.database_name,
             scopus_id=scopus_id
         )
 
