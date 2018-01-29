@@ -66,6 +66,7 @@ class ConfigSetupController:
         'database = Name of the database to be used by ScopusWp\n'
         'username = Username\n'
         'password = Password\n'
+        'update_expiration: 14\n'
         '# The section below defines the names for the individual tables to be used by ScopusWp. You may change the\n'
         '# the table names if you wish. It is recommended to keep the default\n'
         'publication_cache_table = publication_cache\n'
@@ -161,10 +162,13 @@ class ObservedAuthorsSetupController:
 class SQLSetupController:
 
     REFERENCE_SQL = (
-        'CREATE TABLE reference ('
+        'CREATE TABLE reference '
+        '('
         'id BIGINT PRIMARY KEY,'
         'wordpress_id BIGINT,'
-        'scopus_id BIGINT );'
+        'scopus_id BIGINT,'
+        'comments_updated_datetime DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
+        ');'
         'CREATE UNIQUE INDEX reference_id_uindex ON reference (id);'
         'ALTER TABLE reference ENGINE=INNODB;'
         'COMMIT;'

@@ -4,9 +4,15 @@ from ScopusWp.reference import ReferenceController
 
 from ScopusWp.wordpress import WordpressPublicationPostController
 
+from ScopusWp.config import Config
+
 from wordpress_xmlrpc.exceptions import InvalidCredentialsError
+
+from ScopusWp.reference import DATETIME_FORMAT
+
 import socket
 import wordpress_xmlrpc
+import datetime
 
 
 class TopController:
@@ -15,6 +21,8 @@ class TopController:
         self.scopus_controller = ScopusTopController()
         self.reference_controller = ReferenceController()
         self.wordpress_controller = WordpressPublicationPostController()
+
+        self.config = Config.get_instance()
 
     def close(self):
         self.reference_controller.close()
@@ -25,15 +33,36 @@ class TopController:
         # Getting the list of all the scopus ids of those users
         pass
 
-    def update_citations_website(self):
+    def update_citations_website(self, max_amount=200):
+        """
+        Updates the citations of those wordpress publication posts that have not been updated for a specified amount
+        of time.
+
+        Iterates through the list of all post references and gets the citation references for each as the
+        representation of the citations already on the website and requests a new publication object from the scopus
+        website for a new list of citations. The difference between those two is requested as scopus publications
+        and then posted onto the website.
+        :param max_amount: The max amount of publications to be requested
+        :return: void
+        """
         # Getting all the publications currently on the website
         post_reference_list = self.reference_controller.select_all_references()
         # for each publication getting the comment reference and the new publication from scopus
+        counter = 0
         for post_reference in post_reference_list:
             wordpress_post_id = post_reference[1]
-            self.update_citations_post(wordpress_post_id)
+            updated_datetime = post_reference[3]
+            current_datetime = datetime.datetime.now()
+            update_interval = int(self.config['WORDPRESS']['update_expiration'])
+            if (current_datetime - updated_datetime).days < update_interval:
+                continue
+            amount_comments_posted = self.update_citations_post(wordpress_post_id)
+            counter += amount_comments_posted
+            if counter >= max_amount:
+                break
 
     def update_citations_post(self, wordpress_post_id):
+
         # Getting the list of all the comment publications from the comment reference database
         comment_reference_list = self.reference_controller.select_comment_reference_list_py_post(wordpress_post_id)
         old_citation_list = list(map(lambda x: x[3], comment_reference_list))
@@ -47,11 +76,14 @@ class TopController:
         # Building the difference from the new and old citation list
         difference = list(set(new_citation_list) - set(old_citation_list))
         # Requesting the publication itself from scopus to check for new citations
+        counter = 0
         for scopus_id in difference:
             citation_publication = self.scopus_controller.get_publication(scopus_id)
             self.post_scopus_citation(post_publication, citation_publication)
+            counter += 1
         # Updating the time, when was updated
-        self.reference_controller.updated_comments_post(post_publication)
+        self.reference_controller.insert_reference(*post_reference[:-1])
+        return counter
 
     def update_publications_website(self):
         # THE SCOPUS PART
@@ -60,6 +92,16 @@ class TopController:
         # Posting those new publications to the website
         for scopus_publication in new_scopus_publication_list:
             self.post_scopus_publication(scopus_publication)
+
+    def populate_website(self):
+        # THE SCOPUS PART
+        # Getting the new and relevant publications
+        new_scopus_publication_list = self.new_scopus_publications()
+        # Posting those new publications to the website
+        for scopus_publication in new_scopus_publication_list:
+            self.post_scopus_publication(scopus_publication)
+            reference = self.reference_controller.select_post_reference_by_scopus(int(scopus_publication))
+            self.update_citations_post(reference[1])
 
     def new_scopus_publications(self):
         """

@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='scopus.wp',
-    version='0.1.0',
+    version='0.2.0',
     description='A tool for a wordpress server which will automatically post science publications from scopus database',
     url='https://github.com/the16thpythonist/ScopusWp',
     author='Jonas Teufel',

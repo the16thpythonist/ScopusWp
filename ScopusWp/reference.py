@@ -122,14 +122,6 @@ class ReferenceController:
         # The model for the comment reference model
         self.comment_reference_model = CommentReferenceModel()
 
-    def updated_comments_post(self, post_publication):
-        current_datetime = datetime.datetime.now()
-        scopus_id = post_publication.id
-        self.reference_model.update_comments_updated_datetime(
-            scopus_id,
-            current_datetime
-        )
-
     def select_reference(self, internal_id):
         return self.reference_model.select(internal_id)
 
@@ -205,6 +197,9 @@ class ReferenceController:
 
     def wipe(self):
         self.reference_model.wipe()
+        self.comment_reference_model.wipe()
+        self.id_manager.used_ids = []
+        self.id_manager.pointer = 1
 
     def save(self):
         self.reference_model.save()
@@ -249,6 +244,8 @@ class PostReferenceModel:
             comments_updated=datetime_object.strftime(DATETIME_FORMAT),
             scopus_id=scopus_id
         )
+
+        self.database_access.execute(sql)
 
     def save(self):
         self.database_access.save()
@@ -307,8 +304,8 @@ class PostReferenceModel:
             ') '
             'ON DUPLICATE KEY UPDATE '
             'internal_id = {internal_id},'
-            'wordpress_id = {internal_id},'
-            'scopus_id = {scopus_id} '
+            'wordpress_id = {wordpress_id},'
+            'scopus_id = {scopus_id};'
             'COMMIT;'
         ).format(
             database=self.database_name,

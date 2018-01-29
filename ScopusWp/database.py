@@ -7,7 +7,13 @@ import MySQLdb
 
 
 class Db:
-
+    """
+    This is the singleton class which manages the database connection object.
+    On the first call to the get instance method a new "MySQLdb" connection object is being created using the database
+    name, username and password given in the config file of the project.
+    The connection object is stored in a class variable and is returned each time the get instance method is called
+    again.
+    """
     _instance = None
 
     def __init__(self):
@@ -15,14 +21,26 @@ class Db:
 
     @staticmethod
     def get_instance():
+        """
+        This method returns the connection object for the database that is stored inside this singleton.
 
+        :return: MySQLdb.connect() object
+        """
+        # In case this is the first call to the method a new connection object will be created and saved in the static
+        # class variable.
         if Db._instance is None:
             Db.new_instance()
 
+        # Otherwise the saved object will be returned
         return Db._instance
 
     @staticmethod
     def new_instance():
+        """
+        This method creates the new database connection object from the database name, the username and password in
+        the config file of the project and then saves the object in the class variable
+        :return:
+        """
         config = Config.get_instance()
         database = config['MYSQL']['database']
         username = config['MYSQL']['username']
@@ -32,7 +50,19 @@ class Db:
 
 
 class SQLDatabaseAccessInterface:
+    """
+    Simple interface for a sql database access wrapper.
+    The database wrapper, however it is implemented should implement two methods of interacting with a database:
 
+    EXECUTE
+    The execute method takes some sql code snippet and simply executes it onto the database, without any return
+    whatsoever, this is designed to be used for insert or update statements
+
+    SELECT
+    The select method is supposed to also execute the sql code on the database, but return a list of tuples. This
+    is manly supposed to be used with the sql select statement and the returned list to be the list of rows as the
+    response to such a select statement
+    """
     def save(self):
         """
         Supposed to save the changes made to the database
@@ -62,9 +92,14 @@ class SQLDatabaseAccessInterface:
 
 
 class MySQLDatabaseAccess(SQLDatabaseAccessInterface):
-
+    """
+    MySQL database access wrapper.
+    THis class implements the SQL database access interface.
+    it is used to execute Insert, update statements onto the database or fetch rows of data with the select statement.
+    This wrapper is to be used everywhere, where a interface to the mysql database is needed.
+    """
     def __init__(self):
-        # Getting the database object and the according cursor
+        # Getting the database access from the singleton and creating a new cursor to interact with the database
         self.db = Db.get_instance()
         self.cursor = self.db.cursor()
 
@@ -78,6 +113,13 @@ class MySQLDatabaseAccess(SQLDatabaseAccessInterface):
         a = 1
 
     def execute(self, sql):
+        """
+        Executes the given string of sql statements on the mysql database of this project, which is specified in the
+        config file.
+
+        :param sql: The string of sql code.
+        :return: void
+        """
         try:
             self.cursor.execute(sql)
         except Exception as exception:
@@ -93,6 +135,13 @@ class MySQLDatabaseAccess(SQLDatabaseAccessInterface):
             raise exception
 
     def select(self, sql):
+        """
+        Executes the sql code string on the database and returns the list of rows selected.
+        This method is supposed to be used with the select statement.
+
+        :param sql: The sql code string.
+        :return: [data tuples, each one for one row, that matches the select statement]
+        """
         # First: Actually executing the sql command
         self.execute(sql)
 
@@ -110,4 +159,5 @@ class MySQLDatabaseAccess(SQLDatabaseAccessInterface):
                     str(sql).replace('\n', ' '),
                     str(row).replace('\n', ' ')
                 )
+                self.logger.error(error_message)
         return row_list

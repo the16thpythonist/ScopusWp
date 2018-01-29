@@ -25,3 +25,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Made the post reference class use the config file for table name
 - Fixed the ids json not saving and thus creating duplicate keys
 
+## [0.2.0] - 2018-01-24
+
+### Added
+
+- A datetime column in the post reference table for when the comments of that post were updated
+- The functionality to specify the amount of days until the comments update has to be repeated in the config
+- An option for the update of comments to specify roughly how many to be done in one session
+
+
