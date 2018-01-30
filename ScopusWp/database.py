@@ -104,7 +104,7 @@ class MySQLDatabaseAccess(SQLDatabaseAccessInterface):
         self.cursor = self.db.cursor()
 
         # Getting the according logger
-        self.logger = logging.getLogger(SQL_LOGGING_EXTENSION)
+        self.logger = logging.getLogger('MYSQLDatabaseAccess')
 
     def save(self):
         #self.db.commit()

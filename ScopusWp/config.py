@@ -84,13 +84,9 @@ class LoggingController:
         datetime_object = datetime.datetime.now()
         datetime_string = datetime_object.strftime(self.DATETIME_FORMAT)
 
-        line_string = 'STARTING A NEW SESSION @ "{}"'.format(datetime_string)
+        line_string = '\n\nSTARTING A NEW SESSION @ "{}"\n\n'.format(datetime_string)
 
-        if path.exists():
-            file_mode = 'a'
-        else:
-            file_mode = 'w'
-
+        file_mode = 'a'
         with path.open(mode=file_mode) as file:
             file.write(line_string)
 
@@ -98,7 +94,7 @@ class LoggingController:
         logging.basicConfig(
             level=logging.INFO,
             filename=file_path,
-            filemode=file_mode,
+            filemode='a',
             format='%(asctime)s %(name)-40s %(levelname)-8s %(message)s'
         )
 
@@ -106,7 +102,7 @@ class LoggingController:
         datetime_object = datetime.datetime.now()
         datetime_string = datetime_object.strftime(self.DATETIME_FORMAT)
 
-        line_string = 'CLOSING SESSION @ "{}"'.format(datetime_string)
+        line_string = '\n\nCLOSING SESSION @ "{}"\n\n'.format(datetime_string)
 
         with path.open(mode='a') as file:
             file.write(line_string)

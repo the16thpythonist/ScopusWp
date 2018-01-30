@@ -4,7 +4,7 @@ from ScopusWp.reference import ReferenceController
 
 from ScopusWp.wordpress import WordpressPublicationPostController
 
-from ScopusWp.config import Config
+from ScopusWp.config import Config, LoggingController
 
 from wordpress_xmlrpc.exceptions import InvalidCredentialsError
 
@@ -13,11 +13,19 @@ from ScopusWp.reference import DATETIME_FORMAT
 import socket
 import wordpress_xmlrpc
 import datetime
+import logging
 
 
 class TopController:
 
     def __init__(self):
+
+        self.logging_controller = LoggingController()
+        self.logging_controller.init()
+
+        self.activity_logger = logging.getLogger('ACTIVITY')
+        self.logger = logging.getLogger('TopController')
+
         self.scopus_controller = ScopusTopController()
         self.reference_controller = ReferenceController()
         self.wordpress_controller = WordpressPublicationPostController()
@@ -25,7 +33,10 @@ class TopController:
         self.config = Config.get_instance()
 
     def close(self):
+        self.logger.debug('Closing the top controller')
+
         self.reference_controller.close()
+        self.logging_controller.close()
 
     def update_website(self):
         # Getting all the publications that are saved in the backup system
@@ -168,7 +179,7 @@ class TopController:
 
         Also saves the citation publication in the wordpress backup database.
         :param post_publication: The ScopusPublication upon which a wordpress post is based on
-        :param citation_publication: The ScopusPublication that cites the post publication and is supposed to appear as
+        :param citation_scopus_publication: The ScopusPublication that cites the post publication and is supposed to appear as
             a comment on the wordpress post of the post publication
         :return: void
         """
@@ -190,11 +201,27 @@ class TopController:
                 wordpress_comment_id,
                 citation_scopus_publication.id
             )
+            self.activity_logger.info(
+                'Comment posted, post id: {}, comment id: {}, scopus id: {}'.format(
+                    wordpress_post_id,
+                    wordpress_comment_id,
+                    citation_scopus_publication.id
+                )
+            )
         except wordpress_xmlrpc.exceptions.InvalidCredentialsError:
-            print('Duplicate comment!')
+            self.logger.error(
+                'Duplicate comment for wordpress comment scopus id: {}'.format(
+                    citation_scopus_publication.id
+                )
+            )
         except socket.gaierror:
             print('socket error wordpress')
         except IndexError:
+            self.logger.error(
+                'No comment id returned; Comment post attempt failed for comment scopus id: {}'.format(
+                    citation_scopus_publication.id
+                )
+            )
             print('No comment id returned')
 
         # Saving the citation publication in the backup database for possible future use
@@ -230,6 +257,14 @@ class TopController:
         self.scopus_controller.backup_controller.save()
         self.reference_controller.save()
 
+        self.activity_logger.info(
+            'Publication posted, post id: {}, scopus id:{}, internal id:{}'.format(
+                wordpress_id,
+                scopus_publication.id,
+                publication.id
+            )
+        )
+
         return publication.id, wordpress_id, scopus_publication.id
 
     def wipe_website(self):
@@ -238,11 +273,14 @@ class TopController:
         for reference in reference_list:
             wordpress_id = reference[1]
             self.wordpress_controller.delete_post(wordpress_id)
+        self.logger.info('wiped all posts in the reference table from the website')
 
         # Deleting the backup database
         self.scopus_controller.backup_controller.wipe()
+        self.logger.info('wiped the backup database')
         # Deleting the reference database
         self.reference_controller.wipe()
+        self.logger.info('Wiped the reference database')
 
         self.reference_controller.save()
         self.scopus_controller.backup_controller.save()

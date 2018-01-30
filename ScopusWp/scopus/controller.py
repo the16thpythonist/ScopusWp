@@ -230,9 +230,16 @@ class ScopusTopController:
         for author_id in observed_author_id_list:
             # Attempting to get the author profiles for the publication id lists from the cache and if the cache
             # does not contain them, requesting them from scopus
-            author_profile = self.get_author_profile(author_id)
+            author_profile = self.get_author_profile(author_id, caching=caching)
             publication_difference_list = list(set(author_profile.publications) - set(publication_id_list))
             publication_id_list += publication_difference_list
+            self.logger.info(
+                'Fetched the author profile and author publication data for author {}-{}-{}'.format(
+                    author_profile.id,
+                    author_profile.first_name,
+                    author_profile.last_name
+                )
+            )
 
         return publication_id_list
 
