@@ -293,6 +293,7 @@ class ScopusAuthorDatabaseCacheModel(AuthorProfilePersistencyInterface):
             'citation_count = {citation_count},'
             'document_count = {document_count},'
             'publications = "{publications}";'
+            'COMMIT;'
         ).format(
             database=self.database_name,
             author_id=author.id,

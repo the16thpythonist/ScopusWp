@@ -43,6 +43,6 @@ if __name__ == '__main__':
     #main()
     controller = TopController()
     try:
-        controller.populate_website()
+        controller.update_publications_website()
     finally:
         controller.close()

@@ -45,6 +45,7 @@ class ScopusBaseController:
         # Preparing the url to send the GET request to
         url_base = os.path.join(self.url_base, 'search/scopus')
         url = '{}?{}'.format(url_base, urlparse.urlencode(query))
+        print(url)
 
         response = requests.get(url, headers=self.headers)
         return response
@@ -296,15 +297,11 @@ class ScopusAuthorController(ScopusBaseController):
         # TODO: What to do for multiple authors
         self.current_author_id = author_id
 
-        # Requesting the search for the author and processing the response into a dict
-        response = self.request_publications(author_id)
-        response_dict = self._get_response_dict(response)
+        # Creating a new author publication fetcher object to get all the publications of an author
+        author_publication_fetcher = ScopusAuthorPublicationFetcher(author_id)
+        scopus_id_list = author_publication_fetcher.fetch()
 
-        # Extracting the most important data sets from the response
-        entry_list = self._extract_search_response_dict(response_dict)
-        publication_id_list = self._get_scopus_id_list(entry_list)
-
-        return publication_id_list
+        return scopus_id_list
 
     def request_author_retrieval(self, author_id):
         """
@@ -355,6 +352,7 @@ class ScopusAuthorController(ScopusBaseController):
         }
 
         response = self.request_search(query)
+        pprint.pprint(json.loads(response.text))
         return response
 
     def _get_coredata(self, coredata_dict):
@@ -910,3 +908,107 @@ class ScopusController:
         :return: a list of ScopusAffiliation objects
         """
         return self.get_multiple_affiliations(publication.affiliations)
+
+
+class ScopusAuthorPublicationFetcher:
+
+    def __init__(self, author_id):
+        self.author_id = author_id
+
+        self.logger = logging.getLogger('SCOPUS')
+
+        self.config = cfg.Config.get_instance()
+        self.url_base = self.config['SCOPUS']['url']
+        self.api_key = self.config['SCOPUS']['api_key']
+
+        # Constructing the headers dict from the API key
+        self.headers = {
+            'Accept': 'application/json',
+            'X-ELS-APIKey': self.api_key
+        }
+
+        print(self.headers)
+
+    def fetch(self):
+        entry_dict_list = []
+
+        # Requesting the publication search
+        start_index = 0
+        requesting = True
+        while requesting:
+
+            response = self.request_publication_search(start_index)
+            (
+                _entry_dict_list,
+                total_results,
+                items_per_page
+            ) = self._extract_publication_search_response(response)
+
+            # Adding the temporary list of entry dicts from the current request to the total list of entry dicts
+            entry_dict_list += _entry_dict_list
+
+            # The loop continues requesting if the total amount of search results is greater
+            # than the current start index plus the entries acquired in the current request
+            requesting = int(total_results) > (start_index + len(_entry_dict_list))
+
+            start_index += int(items_per_page)
+
+        # Turning the list of entry dicts into a list of publication ids
+        scopus_id_list = []
+        for entry_dict in entry_dict_list:
+            try:
+                scopus_id = self.scopus_id_from_entry_dict(entry_dict)
+            except (KeyError, ValueError):
+                self.logger.error('Skipped publication for author "{}" due to missing scopus id entry'.format(
+                    self.author_id
+                ))
+                continue
+            scopus_id_list.append(scopus_id)
+
+        return scopus_id_list
+
+    @staticmethod
+    def scopus_id_from_entry_dict(entry_dict):
+        scopus_id_string = entry_dict['dc:identifier']
+        if scopus_id_string == '':
+            raise ValueError()
+        scopus_id = int(scopus_id_string.replace('SCOPUS_ID:', ''))
+        return scopus_id
+
+    def request_publication_search(self, start_index):
+        search_query_string = 'AU-ID({})'.format(self.author_id)
+
+        query_dict = {
+            'query': search_query_string,
+            'view': 'STANDARD',
+            'start': start_index
+        }
+
+        url_encoded_query_string = urlparse.urlencode(query_dict)
+
+        url_base = os.path.join(self.url_base, 'search/scopus')
+        url = '{}?{}'.format(
+            url_base,
+            url_encoded_query_string
+        )
+
+        print(url)
+        response = requests.get(url, headers=self.headers)
+        return response
+
+    @staticmethod
+    def _extract_publication_search_response(response):
+        """
+        This method will be used for the 
+        :param response:
+        :return:
+        """
+        # JSON Decoding the response text into a dict structure
+        response_dict = json.loads(response.text)
+
+        entry_dict_list = response_dict['search-results']['entry']
+
+        total_results = response_dict['search-results']['opensearch:totalResults']
+        items_per_page = response_dict['search-results']['opensearch:itemsPerPage']
+
+        return entry_dict_list, total_results, items_per_page

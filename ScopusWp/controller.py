@@ -124,12 +124,17 @@ class TopController:
         reference_list = self.reference_controller.select_all_references()
         old_scopus_id_list = list(map(lambda x: x[2], reference_list))
 
+        print(old_scopus_id_list)
+
         # Getting a list of ALL the scopus ids for the observed authors, but without caching as we want to know whether
         # something has changed from before
-        new_scopus_id_list = self.scopus_controller.get_publication_ids_observed(caching=False)
+        new_scopus_id_list = self.scopus_controller.get_publication_ids_observed(caching=True)
+
+        print(new_scopus_id_list)
 
         # Getting all the new publications
         scopus_id_difference_list = list(set(new_scopus_id_list) - set(old_scopus_id_list))
+        print(scopus_id_difference_list)
         publication_list = []
         for scopus_id in scopus_id_difference_list:
             # obviously without caching as we want the newest version of the publications, so they are fresh for as

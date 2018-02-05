@@ -17,8 +17,7 @@ class WordpressPublicationPostController:
         self.config = cfg.Config.get_instance()
 
         # Getting the logger for the the scopus part of the project
-        scopus_logger_id = cfg.SCOPUS_LOGGING_EXTENSION
-        self.logger = logging.getLogger(scopus_logger_id)
+        self.logger = logging.getLogger('Wordpress')
 
         # Getting the url path to the xmlrpc.php file from the config file
         self.url = self.config['WORDPRESS']['url']
@@ -53,6 +52,10 @@ class WordpressPublicationPostController:
         post.comment_status = 'closed'
 
         self.client.call(EditPost(post.id, post))
+        self.logger.info('WORDPRESS POSTED PUBLICATION, publication id: {}, wordpress id: {}'.format(
+            publication.id,
+            post.id
+        ))
 
         return post.id
 
@@ -74,6 +77,10 @@ class WordpressPublicationPostController:
             date_created = comment_view.get_date()
             comment.date_created = date_created
             self.client.call(EditComment(comment_id, comment))
+            self.logger.info('WORDPRESS COMMENT POSTED, publication id: {}, comment id: {}'.format(
+                publication.id,
+                comment_id
+            ))
 
         self.disable_comments(wordpress_id)
         return comment_id_list

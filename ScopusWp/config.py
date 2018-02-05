@@ -4,6 +4,7 @@ import os
 
 import datetime
 import pathlib
+import threading
 
 # Getting the absolute path to the folder of this very script file, so that can be used to open the config file, which
 # is also located in this folder
@@ -136,6 +137,13 @@ class LoggingController:
         )
 
         return name_string
+
+
+class LoggingObserver(threading.Thread):
+
+    def __init__(self, logger_name):
+
+        self.logger = logging.getLogger(logger_name)
 
 
 class Config:

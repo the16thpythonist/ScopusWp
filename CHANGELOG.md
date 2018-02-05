@@ -33,4 +33,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - The functionality to specify the amount of days until the comments update has to be repeated in the config
 - An option for the update of comments to specify roughly how many to be done in one session
 
+## [0.2.1]
 
+### Added 
+
+- The ScopusAuthorPublicationFetcher which is a object, that handles getting the publications of an author
+
+### Fixed
+
+- The issue, that author profiles had only up to 25 publications saved to them 
+because the scopus search only returned 25 items per request
