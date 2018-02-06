@@ -1,5 +1,6 @@
 import datetime
 import tabulate
+import unidecode
 import textwrap
 
 from ScopusWp.data import Publication
@@ -122,6 +123,8 @@ class PublicationWordpressPostView:
         tag_list = self.publication.tags
         if '' in tag_list:
             tag_list.remove('')
+        # Processing the tags, so that there absolutely is no malicious character in there
+        tag_list = list(map(lambda x: unidecode.unidecode(x.replace("'", '')), tag_list))
         return tag_list
 
     def _authors_string(self, max_amount):

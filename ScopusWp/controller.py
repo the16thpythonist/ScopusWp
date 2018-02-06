@@ -102,7 +102,13 @@ class TopController:
         new_scopus_publication_list = self.new_scopus_publications()
         # Posting those new publications to the website
         for scopus_publication in new_scopus_publication_list:
-            self.post_scopus_publication(scopus_publication)
+            try:
+                self.post_scopus_publication(scopus_publication)
+            except Exception as e:
+                self.logger.error('The scopus publication "{}" could not be posted due to the error "{}"'.format(
+                    int(scopus_publication),
+                    str(e)
+                ))
 
     def populate_website(self):
         # THE SCOPUS PART

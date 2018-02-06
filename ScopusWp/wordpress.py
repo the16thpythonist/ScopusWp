@@ -11,7 +11,10 @@ import logging
 
 
 class WordpressPublicationPostController:
+    """
+    This controller is in charge of actually posting the publications as wordpress posts or comments onto the website.
 
+    """
     def __init__(self):
         # Getting the config instance for the project
         self.config = cfg.Config.get_instance()
@@ -29,6 +32,14 @@ class WordpressPublicationPostController:
         self.client = Client(self.url, self.username, self.password)
 
     def post_publication(self, publication, keywords):
+        """
+        If given a generalized publication object and a list of keywords posts the publication as a new post to the
+        wordpress website.
+
+        :param publication: The generalized publication object describing  what to be posted
+        :param keywords: A list of string keywords, which will be used as the categories of the post
+        :return: The int wordpress id of the post
+        """
         # Creating the view specifically for the wordpress posts
         post_view = PublicationWordpressPostView(publication, keywords)
 
@@ -43,9 +54,12 @@ class WordpressPublicationPostController:
 
         post.id = self.client.call(NewPost(post))
 
+        category_list = post_view.get_category_list()
+        tag_list = post_view.get_tag_list()
+
         post.terms_names = {
-            'category': post_view.get_category_list(),
-            'post_tag': post_view.get_tag_list()
+            'category': category_list,
+            'post_tag': tag_list
         }
 
         post.post_status = 'publish'
@@ -60,6 +74,14 @@ class WordpressPublicationPostController:
         return post.id
 
     def post_citations(self, wordpress_id, publication_list):
+        """
+        Given the wordpress post id of an already posted publication, this method will post the comments given by
+        the list of generalized publication objects.
+
+        :param wordpress_id: The int id of the post, which to extend with comments
+        :param publication_list: A list of generalized publication objects
+        :return: A list of int wordpress comment ids
+        """
         comment_id_list = []
         self.enable_comments(wordpress_id)
 
@@ -86,13 +108,31 @@ class WordpressPublicationPostController:
         return comment_id_list
 
     def delete_post(self, wordpress_id):
+        """
+        Calls a method om the wordpress site, which deletes the post of the given wordpress post id.
+
+        :param wordpress_id: The int id of the post to delete
+        :return: void
+        """
         self.client.call(DeletePost(wordpress_id))
 
     def delete_posts(self, wordpress_id_list):
+        """
+        Deletes all the posts, given by the list of wordpress ids
+
+        :param wordpress_id_list: The list of int ids
+        :return: void
+        """
         for wordpress_id in wordpress_id_list:
             self.delete_post(wordpress_id)
 
     def enable_comments(self, wordpress_id):
+        """
+        Calls a method on the wordpress site, which enables the comment for the post of the given wordpress id
+
+        :param wordpress_id: The int id of the wordpress post
+        :return: void
+        """
         # Getting the Post
         post = self.client.call(GetPost(wordpress_id))
 
@@ -102,6 +142,12 @@ class WordpressPublicationPostController:
         self.client.call(EditPost(wordpress_id, post))
 
     def disable_comments(self, wordpress_id):
+        """
+        Calls a method on the wordpress site, which disables the comments for the post of the given wordpress post id
+
+        :param wordpress_id: The int id of the post, whose comments to disable
+        :return: void
+        """
         # Getting the post
         post = self.client.call(GetPost(wordpress_id))
 

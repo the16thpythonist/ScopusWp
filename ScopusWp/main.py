@@ -29,7 +29,7 @@ def main():
     elif args[0] == 'citations':
         controller = TopController()
         try:
-            controller.update_citations_website()
+            controller.update_publications_website()
         finally:
             controller.close()
 

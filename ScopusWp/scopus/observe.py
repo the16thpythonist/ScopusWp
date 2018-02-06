@@ -54,13 +54,15 @@ class ScopusObservationController:
 
     def get_publication_keywords(self, publication):
         keywords = []
-        # Going through all the authors of the publication and adding all the keywords of each observed author found
-        for author in publication.authors:
+        author_observation_id_set = set(map(lambda x: int(x), self.author_observation_model.keys()))
+        publication_author_id_set = set(map(lambda x: int(x), publication.authors))
 
-            if author in self.author_observation_model:
-                author_keywords = self.get_author_keywords(author)
-                difference = list(set(author_keywords) - set(keywords))
-                keywords += difference
+        publication_observed_authors = list(publication_author_id_set.intersection(author_observation_id_set))
+        # Going through all the authors of the publication and adding all the keywords of each observed author found
+        for author in publication_observed_authors:
+            author_keywords = self.get_author_keywords(author)
+            difference = list(set(author_keywords) - set(keywords))
+            keywords += difference
         return keywords
 
     def filter(self, publication_list):
@@ -121,6 +123,7 @@ class AuthorObservationModel:
         return self.dict[int(author)]
 
     def contains_author(self, author):
+
         return int(author) in self.keys()
 
     def keys(self):
@@ -143,7 +146,7 @@ class AuthorObservationModel:
             author_observation_list.append(author_observation)
             # Adding a reference to the same author observation to all the author ids in the list
             for author_id in author_observation.ids:
-                content_dict[author_id] = author_observation
+                content_dict[int(author_id)] = author_observation
 
         return content_dict, author_observation_list
 
