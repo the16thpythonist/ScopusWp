@@ -9,6 +9,8 @@ import threading
 # Getting the absolute path to the folder of this very script file, so that can be used to open the config file, which
 # is also located in this folder
 PATH = os.path.dirname(os.path.realpath(__file__))
+VERSION = '0.3.0'
+PROJECT_PATH = '/home/jonas/PycharmProjects/ScopusWp/ScopusWp'
 
 LOGGING_PATH = os.path.join(PATH, 'logs')
 
@@ -176,7 +178,7 @@ class Config:
     @staticmethod
     def _config_path():
         # Joining the config path
-        path = os.path.join(PATH, 'config.ini')
+        path = os.path.join(PROJECT_PATH, 'config.ini')
         return path
 
 

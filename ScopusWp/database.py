@@ -5,6 +5,71 @@ import logging
 
 import MySQLdb
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+
+from sqlalchemy.ext.declarative import declarative_base
+
+from IndicoWp.config import Config
+
+
+def get_or_create(session, model, **kwargs):
+    instance = session.query(model).filter_by(**kwargs).first()
+    if instance:
+        return instance
+    else:
+        instance = model(**kwargs)
+        session.add(instance)
+        session.commit()
+        return instance
+
+
+class MySQLDatabase:
+
+    _engine = None
+    _session_maker = None
+
+    @staticmethod
+    def get_session():
+        if MySQLDatabase._session_maker is None:
+            MySQLDatabase._create_session_maker()
+
+        return MySQLDatabase._session_maker()  # type: Session
+
+    @staticmethod
+    def create_database():
+        Base = declarative_base()
+        MySQLDatabase._create_engine()
+        Base.metadata.create_all(MySQLDatabase._engine)
+
+    @staticmethod
+    def _create_session_maker():
+        MySQLDatabase._create_engine()
+
+        MySQLDatabase._session_maker = sessionmaker(bind=MySQLDatabase._engine)
+
+    @staticmethod
+    def _create_engine():
+        config = Config.get_instance()
+        username = config['MYSQL']['username']
+        password = config['MYSQL']['password']
+        host = config['MYSQL']['host']
+        database = config['MYSQL']['database']
+
+        engine_string = 'mysql+mysqldb://{}:{}@{}/{}'.format(
+            username,
+            password,
+            host,
+            database
+        )
+
+        MySQLDatabase._engine = create_engine(engine_string)
+
+
+######################
+# DANGER LEGACY CODE #
+######################
+
 
 class Db:
     """

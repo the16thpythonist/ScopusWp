@@ -1,4 +1,4 @@
-from ScopusWp.config import PATH
+from ScopusWp.config import PATH, PROJECT_PATH
 from ScopusWp.config import Config
 
 from ScopusWp.database import MySQLDatabaseAccess
@@ -39,8 +39,7 @@ class IDManagerSingleton(IDManagerInterface):
     _instance = None
 
     def __init__(self):
-        self.path_string = '{}/ids.json'.format(PATH)
-        self.path = pathlib.Path(self.path_string)
+        self.path = pathlib.Path(PROJECT_PATH) / 'ids.json'
 
         content_dict = self.load()
         self.used_ids = content_dict['used']

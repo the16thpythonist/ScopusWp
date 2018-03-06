@@ -262,10 +262,16 @@ def test_kit_open():
     print(response.text)
 
 
-from ScopusWp.scopus.scopus import ScopusPublicationController
+def test_elsapy():
+    from elsapy.elsclient import ElsClient
+    from elsapy.elsprofile import ElsAuthor, ElsEntity
+    from elsapy.elssearch import ElsSearch
+    from pprint import pprint
 
-con = ScopusPublicationController()
-resp = con.request_citations_search('2-s2.0-85006996222')
-import pprint
-import json
-pprint.pprint(json.loads(resp.text))
+    api_key = '3396e90e0692ebaa0496efa66d481c5c'
+    client = ElsClient(api_key)
+    search = ElsSearch()
+
+
+
+test_elsapy()

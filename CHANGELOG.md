@@ -50,3 +50,26 @@ because the scopus search only returned 25 items per request
 
 - The problem with the categories in the scopus author observation file 
 not actually making it to the post on the website
+
+## [0.3.0]
+
+**Installer Update**
+Changed the installation process in a way, that the project can be installed via pip into the 
+site packages folder normally, without the need to modify python path or create local folder structure 
+for the dependencies. The recommended installation process is using pipenv and then importing the main 
+functions classes into a new module in the pipenv project folder
+
+## Added
+
+- A 'VERSION' variable in the config module
+- A 'PROJECT_PATH' variable in the config module. In the shipping version of the project this variable is 
+empty, but once running the installation script from the install module, the user is prompted to select 
+a project folder for ScopusWp and the variable will then hold the this path.
+- Controller to install.py, which prompts the user to input the project path, where the 
+non code files are supposed to be stored
+- SetupController: A method to setup the database tables
+
+## Changed
+
+- install.py: All controllers are now based on creating the files in a folder that is given 
+to them in construction instead of using the config.PATH right of the bat

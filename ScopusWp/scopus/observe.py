@@ -1,4 +1,4 @@
-from ScopusWp.config import PATH
+from ScopusWp.config import PATH, PROJECT_PATH
 
 from ScopusWp.scopus.data import ScopusAuthorObservation
 
@@ -107,7 +107,7 @@ class ScopusObservationController:
 class AuthorObservationModel:
 
     def __init__(self):
-        self.path_string = '{}/scopus/authors.ini'.format(PATH)
+        self.path_string = PROJECT_PATH
         self.config = configparser.ConfigParser()
         self.config.read(self.path_string)
 
@@ -180,7 +180,7 @@ class AuthorObservationModel:
 class ObservedAuthorsModel2:
 
     def __init__(self):
-        self.path = os.path.join(PATH, 'authors2.ini')
+        self.path = os.path.join(PROJECT_PATH, 'authors2.ini')
 
         self.source = configparser.ConfigParser()
         self.source.read(self.path)

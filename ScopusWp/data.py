@@ -1,3 +1,5 @@
+
+
 class Publication:
 
     def __init__(self, id, title, description, date, doi, author_list, tag_list, journal, volume):

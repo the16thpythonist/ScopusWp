@@ -163,9 +163,11 @@ class ScopusCacheController:
         self.publication_cache_model.wipe()
         self.author_cache_model.wipe()
 
-##########
-# Models #
-##########
+
+################################################
+# DANGER!                                      #
+# THE FOLLOWING CODE IS DEPRECATED LEGACY CODE #
+################################################
 
 
 class ScopusAuthorPickleCacheModel(AuthorProfilePersistencyInterface):

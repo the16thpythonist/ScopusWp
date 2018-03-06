@@ -1012,3 +1012,48 @@ class ScopusAuthorPublicationFetcher:
         items_per_page = response_dict['search-results']['opensearch:itemsPerPage']
 
         return entry_dict_list, total_results, items_per_page
+
+
+class ScopusPublicationProcessor:
+
+    def __init__(self):
+        self.dict = None
+        self.scopus_id = None
+        self.logger = logging.getLogger('scopusProcessing')
+
+    def process(self, publication_entry_dict):
+        # Getting the id from the publication
+        self.scopus_id = publication_entry_dict
+
+    def _query_dict(self, key_query, default_value):
+        key_list = key_query.split('/')
+
+        try:
+            current_level = self.dict
+            for key_string in key_list:
+                # Need a try except here
+                current_level = current_level[key_string]
+        except (TypeError, KeyError) as exception:
+            self.logger.warning(
+                'The publication entry "{}" does not have the value for "{}", exception: {}'.format(
+                    self.scopus_id,
+                    key_query,
+                    str(exception)
+                )
+            )
+            return default_value
+
+        return current_level
+
+
+if __name__ == '__main__':
+
+    controller = ScopusController()
+    author = controller.get_author_profile(57094104200)
+    pubs = controller.get_author_publications(author)
+    print(pubs)
+
+
+
+
+
